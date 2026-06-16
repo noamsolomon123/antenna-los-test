@@ -1,5 +1,7 @@
-// viewshed.worker.js — radial-sweep line-of-sight viewshed (module worker).
-// Receives a pre-decoded elevation grid (no DOM here) and returns a YES/NO raster.
+// viewshed.worker.js — radial-sweep line-of-sight (module worker). Receives a
+// pre-decoded elevation grid and returns a Float32 clearance-MARGIN raster
+// (metres above the Fresnel-inflated horizon per cell; NaN = no data).
+// margin >= 0 means a clear link; the margin is also used by the explore view.
 import { destination } from './geo.js';
 import { curvatureDropM, fresnelRadiusM } from './los.js';
 
@@ -26,20 +28,19 @@ self.onmessage = (e) => {
   } = msg;
 
   const obsH = observer.groundElev + observer.mast;
-  const state = new Uint8Array(gridN * gridN); // 0 nodata/outside, 1 YES, 2 NO
+  const margin = new Float32Array(gridN * gridN).fill(NaN); // metres above horizon; NaN = no data
   const { north, south, west, east } = box;
 
-  const markCell = (lat, lon, s) => {
+  const markCell = (lat, lon, m) => {
     const gx = Math.round(((lon - west) / (east - west)) * (gridN - 1));
     const gy = Math.round(((north - lat) / (north - south)) * (gridN - 1));
     if (gx < 0 || gy < 0 || gx >= gridN || gy >= gridN) return;
     const idx = gy * gridN + gx;
-    if (s === 1) state[idx] = 1;              // YES wins
-    else if (state[idx] === 0) state[idx] = 2; // NO only if still empty
+    if (Number.isNaN(margin[idx]) || m > margin[idx]) margin[idx] = m; // keep the best
   };
 
   const steps = Math.floor(maxRangeM / stepM);
-  let progressTick = Math.max(1, Math.floor(rays / 20));
+  const progressTick = Math.max(1, Math.floor(rays / 20));
 
   for (let r = 0; r < rays; r++) {
     const az = (360 * r) / rays;
@@ -51,19 +52,16 @@ self.onmessage = (e) => {
       if (Number.isNaN(terrain)) continue; // leave as no-data
       const groundTop = terrain - curvatureDropM(d);
       // Required Fresnel clearance for an obstacle here, using the worst-case
-      // endpoint still inside the 50 km disc (d2 = maxRange - d). This is an
-      // upper bound on the true requirement => a YES cell never produces a
-      // false positive against the precise point-to-point check.
+      // endpoint still inside the 50 km disc (d2 = maxRange - d) — an upper bound,
+      // so a margin >= 0 never false-positives against the precise check.
       const inflate = fresnelPct * fresnelRadiusM(freqHz, d, Math.max(1, maxRangeM - d));
+      // receiver-top metres above the blocking horizon at this range
+      if (runningMax !== -Infinity) markCell(p[0], p[1], groundTop + rxMast - obsH - runningMax * d);
       const obstacleAngle = (groundTop + inflate - obsH) / d;
-      const rxAngle = (groundTop + rxMast - obsH) / d;
-      markCell(p[0], p[1], rxAngle >= runningMax ? 1 : 2);
       if (obstacleAngle > runningMax) runningMax = obstacleAngle;
     }
-    if (r % progressTick === 0) {
-      self.postMessage({ type: 'progress', value: r / rays });
-    }
+    if (r % progressTick === 0) self.postMessage({ type: 'progress', value: r / rays });
   }
 
-  self.postMessage({ type: 'done', state, gridN, box, observer, maxRangeM }, [state.buffer]);
+  self.postMessage({ type: 'done', margin, gridN, box, observer, maxRangeM }, [margin.buffer]);
 };

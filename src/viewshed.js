@@ -34,24 +34,20 @@ export function cancelViewshed() {
   if (worker) { worker.terminate(); worker = null; }
 }
 
-function renderRaster(state, gridN, box, observer) {
+// paint the margin grid: green where margin >= 0 (clear), red where < 0, transparent for no-data
+function renderRaster(margin, gridN, box) {
   const canvas = document.createElement('canvas');
   canvas.width = gridN;
   canvas.height = gridN;
   const ctx = canvas.getContext('2d');
   const img = ctx.createImageData(gridN, gridN);
   let yes = 0, no = 0;
-  for (let i = 0; i < state.length; i++) {
+  for (let i = 0; i < margin.length; i++) {
     const o = i * 4;
-    if (state[i] === 1) {            // YES — green
-      img.data[o] = 39; img.data[o + 1] = 209; img.data[o + 2] = 124; img.data[o + 3] = 180;
-      yes++;
-    } else if (state[i] === 2) {     // NO — red
-      img.data[o] = 231; img.data[o + 1] = 76; img.data[o + 2] = 60; img.data[o + 3] = 150;
-      no++;
-    } else {
-      img.data[o + 3] = 0;           // no-data — transparent
-    }
+    const m = margin[i];
+    if (Number.isNaN(m)) { img.data[o + 3] = 0; }                                  // no-data
+    else if (m >= 0) { img.data[o] = 39; img.data[o + 1] = 209; img.data[o + 2] = 124; img.data[o + 3] = 180; yes++; }
+    else { img.data[o] = 231; img.data[o + 1] = 76; img.data[o + 2] = 60; img.data[o + 3] = 150; no++; }
   }
   ctx.putImageData(img, 0, 0);
   const bounds = [[box.south, box.west], [box.north, box.east]];
@@ -63,20 +59,19 @@ function renderRaster(state, gridN, box, observer) {
 }
 
 /**
- * Compute & display the 50 km viewshed from `observer`.
- *  opts: { map, observer:{lat,lon,groundElev,mast}, rxMast, freqHz, fresnelPct, onProgress(phase,frac) }
- * Returns { stats } after the overlay is on the map.
+ * Compute the 50 km clearance-margin grid from `observer` (no rendering).
+ * Shared by the viewshed (rendered binary) and the explore view (curated points).
+ * Returns { grid:Float32, gridN, box, observer, maxRangeM }.
  */
-export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPct, onProgress }) {
+export async function computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, onProgress }) {
   invalidate(); // supersede any prior result but keep the worker for reuse
-  const myToken = ++runToken; // claim this run
+  const myToken = ++runToken;
   const box = squareBox(observer.lat, observer.lon, MAX_RANGE_M);
 
   onProgress?.('tiles', 0);
   await ensureCovered(box, ZOOM, (d, t) => onProgress?.('tiles', d / t));
   if (myToken !== runToken) throw new Error('cancelled');
 
-  // make sure the observer's own ground elevation is fresh from the terrain
   const g = elevation(observer.lat, observer.lon, ZOOM);
   const obs = { ...observer, groundElev: Number.isNaN(g) ? observer.groundElev : g };
 
@@ -103,14 +98,23 @@ export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPc
       [elev.buffer]
     );
   });
-  if (myToken !== runToken) throw new Error('cancelled'); // a clear/new run superseded us
+  if (myToken !== runToken) throw new Error('cancelled');
+  return { grid: result.margin, gridN: result.gridN, box: result.box, observer: obs, maxRangeM: MAX_RANGE_M };
+}
 
-  const { url, bounds, stats } = renderRaster(result.state, result.gridN, result.box, obs);
+/**
+ * Compute & display the 50 km viewshed from `observer`.
+ *  opts: { map, observer, rxMast, freqHz, fresnelPct, onProgress(phase,frac) }
+ * Returns { stats } after the overlay is on the map.
+ */
+export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPct, onProgress }) {
+  const r = await computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, onProgress });
+  const { url, bounds, stats } = renderRaster(r.grid, r.gridN, r.box);
   if (currentOverlay) map.removeLayer(currentOverlay);
   currentOverlay = L.imageOverlay(url, bounds, { opacity: 0.9, interactive: false });
   currentOverlay.addTo(map);
   onProgress?.('done', 1);
-  return { stats, box, groundElev: obs.groundElev };
+  return { stats, box: r.box, groundElev: r.observer.groundElev };
 }
 
 /** Remove the coverage overlay from the map. */

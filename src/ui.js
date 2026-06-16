@@ -8,6 +8,8 @@ import { computeViewshed, clearViewshed, cancelViewshed } from './viewshed.js';
 import { renderProfile } from './profile-chart.js';
 import { runScan, cancelScan } from './scan.js';
 import { isSafe } from './safezone.js';
+import { runExplore } from './explore.js';
+import { initExploreView, openExploreView, closeExploreView } from './explore-view.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
@@ -23,9 +25,60 @@ export function initUI() {
   $('vs-btn').addEventListener('click', runViewshed);
   $('vs-clear').addEventListener('click', () => { cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false); });
   wireScan();
+  wireExplore();
   updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
+}
+
+// ---------- explore (all LOS points) ---------------------------------------
+function wireExplore() {
+  initExploreView({ onFly: exploreFly, onPick: explorePick });
+  $('explore-btn').addEventListener('click', runExploreUI);
+}
+
+function exploreFly(c) { mapCtl.flyTo([c.lat, c.lon], 13); mapCtl.highlightExplore([c.lat, c.lon]); }
+
+function explorePick(c) {
+  const target = state.observer === 'A' ? 'B' : 'A';
+  placeAntenna(target, { lat: c.lat, lng: c.lon });
+  closeExploreView();
+  mapCtl.flyTo([c.lat, c.lon], 13);
+}
+
+async function runExploreUI() {
+  const obs = state['antenna' + state.observer];
+  if (!obs) { setStatus('מקם קודם אנטנה למיקום המשקיף'); return; }
+  if (Number.isNaN(obs.groundElev)) { setStatus('אין נתוני שטח במיקום המשקיף — בחר נקודה ביבשה'); return; }
+  const rxMast = mastVal(state.observer === 'A' ? 'B' : 'A');
+  setStatus('');
+  $('explore-btn').disabled = true;
+  showExploreProgress(true, 'מתחיל…', 0);
+  try {
+    const res = await runExplore({ observer: { ...obs }, rxMast, freqHz: freqHz(), fresnelPct: state.fresnelPct, onProgress: onExploreProgress });
+    if (!res.candidates.length) { setStatus('לא נמצאו נקודות קו ראייה בטוחות באזור'); return; }
+    mapCtl.setExploreResults(res.observer, res.candidates, explorePick);
+    openExploreView(res.candidates);
+  } catch (e) {
+    const msg = e && e.message;
+    if (msg === 'cancelled') { /* superseded — quiet */ }
+    else if (msg === 'observer-no-data') setStatus('אין נתוני שטח במיקום המשקיף');
+    else setStatus('שגיאה בחישוב הנקודות');
+  } finally {
+    $('explore-btn').disabled = false;
+    showExploreProgress(false);
+  }
+}
+
+function onExploreProgress(phase, frac) {
+  const label = phase === 'tiles' ? 'טוען נתוני שטח' : phase === 'compute' ? 'מחשב קו ראייה' : 'מסיים';
+  showExploreProgress(true, `${label}… ${Math.round(frac * 100)}%`, frac);
+}
+
+function showExploreProgress(on, text, frac) {
+  $('explore-progress').style.display = on ? 'block' : 'none';
+  if (text != null) $('explore-progress-label').textContent = text;
+  if (frac != null) $('explore-progress-bar').style.width = `${Math.round(frac * 100)}%`;
 }
 
 // ---------- automated scan -------------------------------------------------
@@ -51,6 +104,7 @@ function updateObserverNote() {
 function invalidateObserverDependent() {
   cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false);
   cancelScan(); mapCtl.clearScan(); $('scan-results').innerHTML = ''; showScanProgress(false);
+  mapCtl.clearExplore(); closeExploreView();
 }
 
 // returns { dists (clean, deduped, sorted), droppedCount (invalid / >50 km tokens) }

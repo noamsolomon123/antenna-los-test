@@ -38,6 +38,7 @@ export function initMap(elId, handlers) {
   const markers = { A: null, B: null };
   let ring = null, link = null, distLabel = null;
   let scanMarkers = [], scanLine = null;
+  let exploreGroup = null, exploreHighlight = null;
   let selected = 'A';
 
   map.on('click', (e) => handlers.onMapClick(e.latlng));
@@ -107,6 +108,35 @@ export function initMap(elId, handlers) {
     },
 
     flyTo(latlng, zoom) { map.flyTo(latlng, zoom || 13); },
+
+    clearExplore() {
+      if (exploreGroup) { map.removeLayer(exploreGroup); exploreGroup = null; }
+      if (exploreHighlight) { map.removeLayer(exploreHighlight); exploreHighlight = null; }
+    },
+
+    // observer={lat,lon}; candidates have {lat,lon,routeOrder}; onPick(candidate)
+    setExploreResults(observer, candidates, onPick) {
+      this.clearExplore();
+      exploreGroup = L.layerGroup().addTo(map);
+      const route = candidates.filter((c) => Number.isFinite(c.routeOrder)).sort((a, b) => a.routeOrder - b.routeOrder);
+      if (route.length) {
+        L.polyline([[observer.lat, observer.lon], ...route.map((c) => [c.lat, c.lon])],
+          { color: '#e67e22', weight: 2.5, dashArray: '6 6', opacity: 0.9 }).addTo(exploreGroup);
+      }
+      candidates.forEach((c) => {
+        const onRoute = Number.isFinite(c.routeOrder);
+        L.circleMarker([c.lat, c.lon], {
+          radius: onRoute ? 6 : 4, color: '#fff', weight: onRoute ? 2 : 1,
+          fillColor: onRoute ? '#e67e22' : '#4f9af0', fillOpacity: 0.9,
+        }).addTo(exploreGroup).on('click', () => onPick && onPick(c));
+      });
+    },
+
+    highlightExplore(latlng) {
+      if (exploreHighlight) map.removeLayer(exploreHighlight);
+      if (!latlng) { exploreHighlight = null; return; }
+      exploreHighlight = L.circleMarker(latlng, { radius: 11, color: '#fff', weight: 3, fill: false, opacity: 0.95 }).addTo(map);
+    },
 
     clearScan() {
       scanMarkers.forEach((m) => map.removeLayer(m));

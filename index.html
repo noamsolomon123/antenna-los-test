@@ -82,6 +82,34 @@
   .scan-mode.active { background:#e67e22; border-color:#e67e22; color:#fff; }
   .scard .est { color:#9aa0a6; cursor:help; }
 
+  #explore-progress { display:none; margin-top:9px; }
+  #explore-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
+  #explore-overlay { position:fixed; top:0; left:360px; right:0; bottom:0; background:#0d0f13; z-index:1500;
+                     display:flex; flex-direction:column; direction:rtl; color:#e8e6e3; }
+  #explore-overlay[hidden] { display:none; }
+  .exp-head { display:flex; align-items:center; gap:12px; padding:12px 16px; background:#1a1d23; border-bottom:1px solid #2a2f38; }
+  .exp-head b { color:#fff; font-size:1.02em; }
+  #exp-close { background:#2d323c; border:1px solid #3a3f49; color:#e8e6e3; border-radius:7px; padding:5px 12px; cursor:pointer; font-family:inherit; }
+  .exp-filters { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 16px; background:#161a20; border-bottom:1px solid #2a2f38; font-size:.82em; color:#c5c9ce; }
+  .exp-filters input { width:60px; background:#11151b; border:1px solid #3a3f49; color:#fff; border-radius:6px; padding:4px 6px; text-align:center; font-family:inherit; }
+  #exp-reset { background:#2d323c; border:1px solid #3a3f49; color:#cfe0f5; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:inherit; margin-right:8px; }
+  .exp-tablewrap { flex:1; overflow:auto; }
+  #exp-table { width:100%; border-collapse:collapse; font-size:.84em; }
+  #exp-table thead th { position:sticky; top:0; background:#242830; color:#cfd3d8; text-align:right; padding:9px 12px; border-bottom:1px solid #3a3f49; white-space:nowrap; }
+  #exp-table th[data-sort] { cursor:pointer; user-select:none; }
+  #exp-table th[data-sort]:hover { background:#2d323c; }
+  #exp-table th[data-active="asc"]::after { content:" ▲"; color:#8ab4f8; }
+  #exp-table th[data-active="desc"]::after { content:" ▼"; color:#8ab4f8; }
+  #exp-table tbody td { padding:8px 12px; border-bottom:1px solid #20242b; }
+  #exp-table tbody tr { cursor:pointer; }
+  #exp-table tbody tr:hover { background:#1d222b; }
+  #exp-table .ord { font-weight:800; color:#7d828b; }
+  #exp-table .ord.on { color:#e67e22; }
+  #exp-table .pos { color:#6fd388; } #exp-table .neg { color:#ff6b6b; }
+  #exp-table .coords { font-family:Consolas,monospace; color:#8ab4f8; direction:ltr; font-size:.92em; }
+  #exp-table .coords a { color:#8ab4f8; }
+  .exp-place { background:#2e7dd1; border:0; color:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:inherit; font-size:.92em; white-space:nowrap; }
+
   #map { flex:1; height:100vh; }
   .dist-label { background:rgba(255,255,255,.93); color:#1a1a1a; font-weight:700; font-size:12px;
                 padding:1px 7px; border-radius:6px; border:1px solid #555; white-space:nowrap; }
@@ -166,6 +194,10 @@
     <button class="linkbtn" id="scan-clear">נקה תוצאות</button>
     <div id="scan-progress"><div id="scan-progress-label"></div><div class="bar"><div id="scan-progress-bar"></div></div></div>
     <div id="scan-results"></div>
+    <hr style="border:0; border-top:1px solid #2a2f38; margin:11px 0">
+    <div class="row">או — כל נקודות קו הראייה מהמשקיף, בטבלה הניתנת למיון וסינון:</div>
+    <button class="cbtn" id="explore-btn" style="background:linear-gradient(135deg,#b06a1f,#e67e22); margin-top:8px">📋 כל נקודות ה‑LOS — טבלה</button>
+    <div id="explore-progress"><div id="explore-progress-label"></div><div class="bar"><div id="explore-progress-bar"></div></div></div>
   </div>
 
   <div id="status"></div>
@@ -187,6 +219,36 @@
     <div style="display:flex; flex-direction:column; justify-content:space-between; height:104px; font-size:.6em; color:#c5c9ce">
       <span>2000</span><span>1400</span><span>1000</span><span>700</span><span>400</span><span>150</span><span>0</span><span>‎-50</span><span>‎-430</span>
     </div>
+  </div>
+</div>
+
+<div id="explore-overlay" hidden>
+  <div class="exp-head">
+    <b>📋 כל נקודות קו הראייה מהמשקיף</b>
+    <span id="exp-count" class="muted"></span>
+    <span style="flex:1"></span>
+    <button id="exp-close">✕ סגור</button>
+  </div>
+  <div class="exp-filters">
+    מרחק: <input id="exp-min-km" type="number" placeholder="מ-"> – <input id="exp-max-km" type="number" placeholder="עד"> ק"מ
+    · מרווח ≥ <input id="exp-min-clr" type="number" placeholder="מ'">
+    · כיוון: <input id="exp-dir-from" type="number" placeholder="מ°"> – <input id="exp-dir-to" type="number" placeholder="עד°">
+    · גובה ≥ <input id="exp-min-h" type="number" placeholder="מ'">
+    <button id="exp-reset">איפוס</button>
+  </div>
+  <div class="exp-tablewrap">
+    <table id="exp-table">
+      <thead><tr>
+        <th data-sort="route">#</th>
+        <th data-sort="distance">מרחק ק"מ</th>
+        <th>אזימוט</th>
+        <th data-sort="clearance">מרווח מ'</th>
+        <th data-sort="height">גובה מ'</th>
+        <th>קואורדינטות</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="exp-rows"></tbody>
+    </table>
   </div>
 </div>
 
