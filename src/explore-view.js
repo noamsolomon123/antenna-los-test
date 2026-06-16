@@ -21,12 +21,7 @@ export function initExploreView(h) {
     render();
   });
   FILTER_IDS.forEach((id) => $(id).addEventListener('input', render));
-  // preset: one tap -> car-accessible (within 1 km of a road, nearest first)
-  $('exp-preset-car').addEventListener('click', () => {
-    $('exp-max-road').value = '1';
-    sortBy = 'road'; sortDir = 'asc';
-    render();
-  });
+  $('exp-preset-car').addEventListener('click', applyCarPreset);
   document.querySelectorAll('#exp-table th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const field = th.dataset.sort;
@@ -46,6 +41,13 @@ export function openExploreView(cands) {
 
 export function closeExploreView() { $('explore-overlay').hidden = true; }
 export function isExploreOpen() { return !$('explore-overlay').hidden; }
+
+// one tap -> car-accessible: within 1 km of a road, nearest-road first
+export function applyCarPreset() {
+  $('exp-max-road').value = '1';
+  sortBy = 'road'; sortDir = 'asc';
+  render();
+}
 
 const num = (id) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : null; };
 

@@ -9,7 +9,7 @@ import { renderProfile } from './profile-chart.js';
 import { runScan, cancelScan } from './scan.js';
 import { isSafe } from './safezone.js';
 import { runExplore } from './explore.js';
-import { initExploreView, openExploreView, closeExploreView } from './explore-view.js';
+import { initExploreView, openExploreView, closeExploreView, applyCarPreset } from './explore-view.js';
 import { searchPlaces } from './geocode.js';
 
 const PROFILE_ZOOM = 12;
@@ -60,7 +60,8 @@ function wireSearch() {
 // ---------- explore (all LOS points) ---------------------------------------
 function wireExplore() {
   initExploreView({ onFly: exploreFly, onPick: explorePick });
-  $('explore-btn').addEventListener('click', runExploreUI);
+  $('explore-btn').addEventListener('click', () => runExploreUI(false));
+  $('explore-car-btn').addEventListener('click', () => runExploreUI(true));
 }
 
 function exploreFly(c) { mapCtl.flyTo([c.lat, c.lon], 13); mapCtl.highlightExplore([c.lat, c.lon]); }
@@ -72,19 +73,21 @@ function explorePick(c) {
   mapCtl.flyTo([c.lat, c.lon], 13);
 }
 
-async function runExploreUI() {
+async function runExploreUI(carPreset) {
   const obs = state['antenna' + state.observer];
   if (!obs) { setStatus('מקם קודם אנטנה למיקום המשקיף'); return; }
   if (Number.isNaN(obs.groundElev)) { setStatus('אין נתוני שטח במיקום המשקיף — בחר נקודה ביבשה'); return; }
   const rxMast = mastVal(state.observer === 'A' ? 'B' : 'A');
   setStatus('');
   $('explore-btn').disabled = true;
+  $('explore-car-btn').disabled = true;
   showExploreProgress(true, 'מתחיל…', 0);
   try {
     const res = await runExplore({ observer: { ...obs }, rxMast, freqHz: freqHz(), fresnelPct: state.fresnelPct, onProgress: onExploreProgress });
     if (!res.candidates.length) { setStatus('לא נמצאו נקודות קו ראייה בטוחות באזור'); return; }
     mapCtl.setExploreResults(res.observer, res.candidates, explorePick);
     openExploreView(res.candidates);
+    if (carPreset) applyCarPreset(); // open already filtered to car-accessible spots
   } catch (e) {
     const msg = e && e.message;
     if (msg === 'cancelled') { /* superseded — quiet */ }
@@ -92,6 +95,7 @@ async function runExploreUI() {
     else setStatus('שגיאה בחישוב הנקודות');
   } finally {
     $('explore-btn').disabled = false;
+    $('explore-car-btn').disabled = false;
     showExploreProgress(false);
   }
 }
