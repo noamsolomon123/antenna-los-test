@@ -12,6 +12,8 @@ const STEP_M = 60;     // along-ray sample spacing
 
 let currentOverlay = null;
 let worker = null;
+let activeReject = null; // reject() of the in-flight compute promise, if any
+let runToken = 0;        // bumped on cancel/new run so stale results are discarded
 
 function getWorker() {
   if (!worker) {
@@ -20,12 +22,11 @@ function getWorker() {
   return worker;
 }
 
-/** Cancel any in-flight compute (terminates + recreates the worker). */
+/** Cancel any in-flight compute: invalidate its result, reject its promise, kill the worker. */
 export function cancelViewshed() {
-  if (worker) {
-    worker.terminate();
-    worker = null;
-  }
+  runToken++;
+  if (activeReject) { const reject = activeReject; activeReject = null; reject(new Error('cancelled')); }
+  if (worker) { worker.terminate(); worker = null; }
 }
 
 function renderRaster(state, gridN, box, observer) {
@@ -52,7 +53,7 @@ function renderRaster(state, gridN, box, observer) {
   return {
     url: canvas.toDataURL(),
     bounds,
-    stats: { yes, no, coverage: yes + no > 0 ? yes / (yes + no) : 0 },
+    stats: { yes, no, hasData: yes + no > 0, coverage: yes + no > 0 ? yes / (yes + no) : 0 },
   };
 }
 
@@ -63,10 +64,12 @@ function renderRaster(state, gridN, box, observer) {
  */
 export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPct, onProgress }) {
   cancelViewshed();
+  const myToken = ++runToken; // claim this run
   const box = squareBox(observer.lat, observer.lon, MAX_RANGE_M);
 
   onProgress?.('tiles', 0);
   await ensureCovered(box, ZOOM, (d, t) => onProgress?.('tiles', d / t));
+  if (myToken !== runToken) throw new Error('cancelled');
 
   // make sure the observer's own ground elevation is fresh from the terrain
   const g = elevation(observer.lat, observer.lon, ZOOM);
@@ -75,13 +78,16 @@ export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPc
   onProgress?.('compute', 0);
   const elev = buildGrid(box, ELEV_GRID, ELEV_GRID, ZOOM);
 
-  const result = await new Promise((resolve) => {
+  const result = await new Promise((resolve, reject) => {
     const w = getWorker();
+    activeReject = reject;
     w.onmessage = (e) => {
       const m = e.data;
       if (m.type === 'progress') onProgress?.('compute', m.value);
-      else if (m.type === 'done') resolve(m);
+      else if (m.type === 'done') { activeReject = null; resolve(m); }
     };
+    w.onerror = (err) => { activeReject = null; reject(new Error('worker: ' + (err.message || 'load/run failed'))); };
+    w.onmessageerror = () => { activeReject = null; reject(new Error('worker message error')); };
     w.postMessage(
       {
         type: 'compute',
@@ -92,6 +98,7 @@ export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPc
       [elev.buffer]
     );
   });
+  if (myToken !== runToken) throw new Error('cancelled'); // a clear/new run superseded us
 
   const { url, bounds, stats } = renderRaster(result.state, result.gridN, result.box, obs);
   if (currentOverlay) map.removeLayer(currentOverlay);

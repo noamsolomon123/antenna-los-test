@@ -83,9 +83,12 @@ export function initMap(elId, handlers) {
     },
 
     setRing(latlng) {
-      if (ring) { map.removeLayer(ring); ring = null; }
-      if (!latlng) return;
-      ring = L.circle(latlng, { radius: 50000, color: '#fff', weight: 2, dashArray: '9 7', fill: false, opacity: 0.85 }).addTo(map);
+      if (!latlng) {
+        if (ring) { map.removeLayer(ring); ring = null; }
+        return;
+      }
+      if (ring) ring.setLatLng(latlng); // reuse — no flicker/GC churn during drag
+      else ring = L.circle(latlng, { radius: 50000, color: '#fff', weight: 2, dashArray: '9 7', fill: false, opacity: 0.85 }).addTo(map);
     },
 
     fitTo(a, b) {

@@ -22,16 +22,22 @@ const MIME = {
 
 const server = http.createServer(async (req, res) => {
   try {
+    if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405).end('Method Not Allowed'); return; }
     let urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
     if (urlPath === '/') urlPath = '/index.html';
+    // never serve dotfiles / dot-dirs (.git, .env, ...) even though they live under ROOT
+    if (urlPath.split('/').some((seg) => seg.startsWith('.') && seg !== '.' && seg !== '..')) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found'); return;
+    }
     const filePath = join(ROOT, normalize(urlPath).replace(/^(\.\.[/\\])+/, ''));
     if (!filePath.startsWith(ROOT)) { res.writeHead(403).end('Forbidden'); return; }
     const body = await readFile(filePath);
     res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] || 'application/octet-stream' });
-    res.end(body);
+    res.end(req.method === 'HEAD' ? undefined : body);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
   }
 });
 
-server.listen(PORT, () => console.log(`\n  Antenna LOS running at  http://localhost:${PORT}\n  (Ctrl+C to stop)\n`));
+// loopback only — don't expose the project tree to the LAN
+server.listen(PORT, '127.0.0.1', () => console.log(`\n  Antenna LOS running at  http://localhost:${PORT}\n  (Ctrl+C to stop)\n`));

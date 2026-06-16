@@ -44,7 +44,9 @@ It's a **planning tool**: bare-earth terrain only (no buildings/canopy), ~30 m r
 |----|---------|
 | Windows | double-click **`run.bat`** |
 | macOS / Linux | **`./run.sh`** |
-| Any (manual) | `python -m http.server 8080` then open `http://localhost:8080/` |
+| Manual (Windows) | `py serve.py 8080` then open `http://localhost:8080/` |
+| Manual (macOS/Linux) | `python3 serve.py 8080` then open `http://localhost:8080/` |
+| Manual (Node, no Python) | `node server.js 8080` |
 
 > Opening `index.html` directly from disk (`file://`) will **not** work — browsers block module workers and
 > cross-origin terrain fetches from local files. Use the run script or the live URL.
@@ -71,5 +73,6 @@ src/map.js                 Leaflet map controller
 src/ui.js                  sidebar + interaction glue
 src/state.js               app state
 tests/los.test.js          physics unit tests
-run.bat / run.sh / server.js   foolproof launchers
+run.bat / run.ps1 / run.sh foolproof launchers
+serve.py / server.js       zero-dependency local servers (correct MIME)
 ```

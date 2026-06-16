@@ -57,12 +57,12 @@ export function renderProfile(container, result) {
   // sightline A-top -> B-top
   svg.appendChild(svgEl('line', { x1: X(0), y1: Y(result.hA), x2: X(xs), y2: Y(result.hB), stroke: result.clear ? '#6fd388' : '#e74c3c', 'stroke-width': 2, 'stroke-dasharray': '6 4' }));
 
-  // determining point
-  if (Number.isFinite(result.minAtKm)) {
+  // determining point — diamond sits on the obstacle (effective terrain) that drives the verdict
+  if (Number.isFinite(result.minAtKm) && Number.isFinite(result.minTerrain)) {
     const dx = X(result.minAtKm);
+    const dy = Y(result.minTerrain);
     svg.appendChild(svgEl('line', { x1: dx, y1: PAD_T, x2: dx, y2: H - PAD_B, stroke: '#f1c40f', 'stroke-width': 1, opacity: 0.6 }));
-    const dot = svgEl('rect', { x: dx - 3, y: Y(result.hA + (result.hB - result.hA) * (result.minAtKm / xs)) - 3, width: 6, height: 6, fill: '#fff', transform: `rotate(45 ${dx} ${Y(result.hA + (result.hB - result.hA) * (result.minAtKm / xs))})` });
-    svg.appendChild(dot);
+    svg.appendChild(svgEl('rect', { x: dx - 3, y: dy - 3, width: 6, height: 6, fill: '#fff', stroke: '#f1c40f', 'stroke-width': 1, transform: `rotate(45 ${dx} ${dy})` }));
   }
 
   // endpoints

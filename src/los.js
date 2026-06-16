@@ -61,7 +61,9 @@ export function analyzeLink({ a, b, freqHz, fresnelPct, sampleElev }) {
   const samples = [];
   let minMargin = Infinity;
   let minAtKm = 0;
-  let hadData = false;
+  let minTerrain = NaN; // effective terrain at the determining point
+  let withData = 0;
+  const total = N - 1;
 
   for (let i = 1; i < N; i++) {
     const t = i / N;
@@ -77,16 +79,18 @@ export function analyzeLink({ a, b, freqHz, fresnelPct, sampleElev }) {
     const km = d1 / 1000;
 
     if (!Number.isNaN(terrain)) {
-      hadData = true;
+      withData++;
       const margin = sight - bulge - fresnelPct * fr - terrain;
       if (margin < minMargin) {
         minMargin = margin;
         minAtKm = km;
+        minTerrain = effTerrain;
       }
     }
     samples.push({ km, terrain, effTerrain, sight, f60, fresnelFull: sight - fr });
   }
 
+  const hadData = withData > 0;
   return {
     distanceM: D,
     distanceKm: D / 1000,
@@ -97,8 +101,10 @@ export function analyzeLink({ a, b, freqHz, fresnelPct, sampleElev }) {
     hB,
     samples,
     hasData: hadData,
+    dataFraction: total > 0 ? withData / total : 0, // share of path with terrain data
     minMargin: hadData ? minMargin : NaN,
     minAtKm,
+    minTerrain, // effective terrain elevation at the determining point
     clear: hadData && minMargin >= 0, // binary YES/NO
   };
 }
