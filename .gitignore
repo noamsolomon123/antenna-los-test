@@ -1,0 +1,12 @@
+# Brainstorming visual-companion mockups (local only)
+.superpowers/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
