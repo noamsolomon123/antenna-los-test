@@ -21,6 +21,12 @@ export function initExploreView(h) {
     render();
   });
   FILTER_IDS.forEach((id) => $(id).addEventListener('input', render));
+  // preset: one tap -> car-accessible (within 1 km of a road, nearest first)
+  $('exp-preset-car').addEventListener('click', () => {
+    $('exp-max-road').value = '1';
+    sortBy = 'road'; sortDir = 'asc';
+    render();
+  });
   document.querySelectorAll('#exp-table th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const field = th.dataset.sort;

@@ -102,6 +102,8 @@
   .exp-filters { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 16px; background:#161a20; border-bottom:1px solid #2a2f38; font-size:.82em; color:#c5c9ce; }
   .exp-filters input { width:60px; background:#11151b; border:1px solid #3a3f49; color:#fff; border-radius:6px; padding:4px 6px; text-align:center; font-family:inherit; }
   #exp-reset { background:#2d323c; border:1px solid #3a3f49; color:#cfe0f5; border-radius:6px; padding:4px 10px; cursor:pointer; font-family:inherit; margin-right:8px; }
+  .exp-preset { background:#1f6f3f; border:1px solid #2e8b57; color:#fff; border-radius:7px; padding:5px 11px; cursor:pointer; font-family:inherit; font-size:.82em; font-weight:700; }
+  .exp-preset:hover { background:#268a4d; }
   .exp-tablewrap { flex:1; overflow:auto; }
   #exp-table { width:100%; border-collapse:collapse; font-size:.84em; }
   #exp-table thead th { position:sticky; top:0; background:#242830; color:#cfd3d8; text-align:right; padding:9px 12px; border-bottom:1px solid #3a3f49; white-space:nowrap; }
@@ -244,6 +246,8 @@
     <button id="exp-close">✕ סגור</button>
   </div>
   <div class="exp-filters">
+    <button id="exp-preset-car" class="exp-preset">🚗 נגיש לרכב</button>
+    <span style="opacity:.35">|</span>
     מרחק: <input id="exp-min-km" type="number" placeholder="מ-"> – <input id="exp-max-km" type="number" placeholder="עד"> ק"מ
     · מרווח ≥ <input id="exp-min-clr" type="number" placeholder="מ'">
     · כיוון: <input id="exp-dir-from" type="number" placeholder="מ°"> – <input id="exp-dir-to" type="number" placeholder="עד°">
