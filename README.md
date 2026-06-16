@@ -34,7 +34,14 @@ plus a live **50 km coverage map** (viewshed) from any chosen point.
   Fresnel-zone** clearance at your chosen frequency. A link is **YES** only if the terrain clears **60 % of F1**
   everywhere along the path.
 - **Viewshed:** a radial line-of-sight sweep (in a Web Worker, off the main thread) marks every cell within 50 km
-  as YES/NO for a receiver at the other antenna's mast height.
+  as YES/NO for a receiver at the other antenna's mast height. This is a **fast ~65 m approximation** (kept
+  conservative so a green cell shouldn't false-positive); the link test and the scan's confirmed points use finer
+  ~30 m data, so treat the viewshed as a coverage guide and confirm a specific spot with the link test.
+- **Auto-scan (🎯):** fix one antenna and find good LOS spots at several target distances (e.g. 30/40/50 km) in one
+  run — **corridor mode** keeps them along one bearing (one drive), or **best-at-each-distance**. Each result is
+  re-checked with the precise link math; click a result to drop the antenna there.
+- **Height map:** a toggleable colored elevation overlay (deep blue below sea → green → tan/brown → white peaks)
+  so high and low ground are obvious at a glance.
 
 It's a **planning tool**: bare-earth terrain only (no buildings/canopy), ~30 m resolution. Always confirm on site.
 
@@ -68,11 +75,14 @@ src/los.js                 curvature + Fresnel + link analysis (pure, tested)
 src/terrain.js             terrain-tile fetch / decode / sample
 src/viewshed.js            viewshed orchestration + overlay render
 src/viewshed.worker.js     radial-sweep compute (Web Worker)
+src/scan.js                automated multi-distance corridor scan (pure + async)
+src/heightmap.js           colored elevation overlay (GridLayer)
 src/profile-chart.js       terrain cross-section chart
 src/map.js                 Leaflet map controller
 src/ui.js                  sidebar + interaction glue
 src/state.js               app state
 tests/los.test.js          physics unit tests
+tests/scan.test.js         scan-logic unit tests
 run.bat / run.ps1 / run.sh foolproof launchers
 serve.py / server.js       zero-dependency local servers (correct MIME)
 ```

@@ -10,8 +10,16 @@ const SOURCES = [
 ];
 
 const TILE = 256;
-const cache = new Map();      // "z/x/y" -> Float32Array(256*256) | 'nodata'
+const MAX_TILES = 400;        // bound memory (~100 MB of Float32 tiles) under heavy pan/zoom
+const NODATA_TTL = 60000;     // ms — retry a failed tile after this, don't pin failures forever
+const cache = new Map();      // "z/x/y" -> Float32Array(256*256)  (success only)
+const nodataUntil = new Map();// "z/x/y" -> timestamp until which it's treated as no-data
 const inflight = new Map();   // "z/x/y" -> Promise
+
+function cacheSet(key, val) {
+  cache.set(key, val);
+  if (cache.size > MAX_TILES) cache.delete(cache.keys().next().value); // evict oldest
+}
 
 // ---- slippy-map tile math --------------------------------------------------
 const lon2tileF = (lon, z) => ((lon + 180) / 360) * 2 ** z;
@@ -54,11 +62,16 @@ async function fetchTile(z, x, y) {
 
 function loadTile(z, x, y) {
   const key = `${z}/${x}/${y}`;
-  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  const hit = cache.get(key);
+  if (hit) return Promise.resolve(hit);
+  const until = nodataUntil.get(key);
+  if (until && Date.now() < until) return Promise.resolve('nodata');
   if (inflight.has(key)) return inflight.get(key);
   const p = fetchTile(z, x, y).then((elev) => {
-    cache.set(key, elev);
     inflight.delete(key);
+    if (elev === 'nodata') { nodataUntil.set(key, Date.now() + NODATA_TTL); return 'nodata'; }
+    cacheSet(key, elev);
+    nodataUntil.delete(key);
     return elev;
   });
   inflight.set(key, p);
@@ -82,16 +95,18 @@ async function runPool(tasks, concurrency, onProgress) {
   );
 }
 
-/** Pre-fetch every tile covering a {south,west,north,east} box at a zoom. */
+/** Pre-fetch every tile covering a {south,west,north,east} box. Returns {total,nodata}. */
 export async function ensureCovered(box, zoom, onProgress) {
   const x0 = Math.floor(lon2tileF(box.west, zoom));
   const x1 = Math.floor(lon2tileF(box.east, zoom));
   const y0 = Math.floor(lat2tileF(box.north, zoom)); // north = smaller y
   const y1 = Math.floor(lat2tileF(box.south, zoom));
-  const tasks = [];
-  for (let x = x0; x <= x1; x++)
-    for (let y = y0; y <= y1; y++) tasks.push(() => loadTile(zoom, x, y));
+  let nodata = 0;
+  const coords = [];
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) coords.push([x, y]);
+  const tasks = coords.map(([x, y]) => async () => { if ((await loadTile(zoom, x, y)) === 'nodata') nodata++; });
   await runPool(tasks, 6, onProgress);
+  return { total: coords.length, nodata };
 }
 
 /** Decoded elevation tile (Float32 256x256) for z/x/y, or 'nodata'. Shares the cache. */
@@ -99,15 +114,31 @@ export function getDecodedTile(z, x, y) {
   return loadTile(z, x, y);
 }
 
-/** Pre-fetch only the tiles a straight a->b path crosses (a thin strip), at a zoom. */
+/**
+ * Pre-fetch only the tiles a straight a->b path crosses (a thin strip), at a zoom.
+ * Enumerates EVERY tile the segment passes through (Amanatides–Woo grid traversal)
+ * so a later fine-grained profile sample never lands in an un-loaded tile.
+ */
 export async function ensurePath(a, b, zoom, onProgress) {
-  const steps = Math.max(2, Math.ceil(Math.hypot(b.lat - a.lat, b.lon - a.lon) * 600));
+  const x0 = lon2tileF(a.lon, zoom), y0 = lat2tileF(a.lat, zoom);
+  const x1 = lon2tileF(b.lon, zoom), y1 = lat2tileF(b.lat, zoom);
   const keys = new Set();
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const lat = a.lat + (b.lat - a.lat) * t;
-    const lon = a.lon + (b.lon - a.lon) * t;
-    keys.add(`${Math.floor(lon2tileF(lon, zoom))},${Math.floor(lat2tileF(lat, zoom))}`);
+  let tx = Math.floor(x0), ty = Math.floor(y0);
+  const txEnd = Math.floor(x1), tyEnd = Math.floor(y1);
+  keys.add(`${tx},${ty}`);
+  keys.add(`${txEnd},${tyEnd}`);
+  const dx = x1 - x0, dy = y1 - y0;
+  if (dx !== 0 || dy !== 0) {
+    const stepX = Math.sign(dx) || 1, stepY = Math.sign(dy) || 1;
+    const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity;
+    const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity;
+    let tMaxX = dx !== 0 ? (stepX > 0 ? Math.floor(x0) + 1 - x0 : x0 - Math.floor(x0)) * tDeltaX : Infinity;
+    let tMaxY = dy !== 0 ? (stepY > 0 ? Math.floor(y0) + 1 - y0 : y0 - Math.floor(y0)) * tDeltaY : Infinity;
+    let guard = 0;
+    while ((tx !== txEnd || ty !== tyEnd) && guard++ < 10000) {
+      if (tMaxX < tMaxY) { tMaxX += tDeltaX; tx += stepX; } else { tMaxY += tDeltaY; ty += stepY; }
+      keys.add(`${tx},${ty}`);
+    }
   }
   const tasks = [...keys].map((k) => {
     const [x, y] = k.split(',').map(Number);

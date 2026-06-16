@@ -22,10 +22,15 @@ function getWorker() {
   return worker;
 }
 
-/** Cancel any in-flight compute: invalidate its result, reject its promise, kill the worker. */
-export function cancelViewshed() {
+// Invalidate the in-flight result without killing the (reusable) worker.
+function invalidate() {
   runToken++;
   if (activeReject) { const reject = activeReject; activeReject = null; reject(new Error('cancelled')); }
+}
+
+/** Hard-cancel: invalidate the in-flight result AND tear down the worker (used by clear). */
+export function cancelViewshed() {
+  invalidate();
   if (worker) { worker.terminate(); worker = null; }
 }
 
@@ -39,10 +44,10 @@ function renderRaster(state, gridN, box, observer) {
   for (let i = 0; i < state.length; i++) {
     const o = i * 4;
     if (state[i] === 1) {            // YES — green
-      img.data[o] = 39; img.data[o + 1] = 209; img.data[o + 2] = 124; img.data[o + 3] = 150;
+      img.data[o] = 39; img.data[o + 1] = 209; img.data[o + 2] = 124; img.data[o + 3] = 180;
       yes++;
     } else if (state[i] === 2) {     // NO — red
-      img.data[o] = 231; img.data[o + 1] = 76; img.data[o + 2] = 60; img.data[o + 3] = 120;
+      img.data[o] = 231; img.data[o + 1] = 76; img.data[o + 2] = 60; img.data[o + 3] = 150;
       no++;
     } else {
       img.data[o + 3] = 0;           // no-data — transparent
@@ -63,7 +68,7 @@ function renderRaster(state, gridN, box, observer) {
  * Returns { stats } after the overlay is on the map.
  */
 export async function computeViewshed({ map, observer, rxMast, freqHz, fresnelPct, onProgress }) {
-  cancelViewshed();
+  invalidate(); // supersede any prior result but keep the worker for reuse
   const myToken = ++runToken; // claim this run
   const box = squareBox(observer.lat, observer.lon, MAX_RANGE_M);
 

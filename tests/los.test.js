@@ -29,6 +29,15 @@ approx(fresnelRadiusM(5.8e9, 17100, 17100), 21.0, 1.0, 'F1 radius @5.8GHz, 34.2 
 ok(fresnelInflationBoundM(5.8e9, 17100, 0.6) >= 0.6 * fresnelRadiusM(5.8e9, 17100, 17100),
   'inflation bound >= actual 0.6·F1 (conservative)');
 
+// --- the inline Fresnel inflation actually used by the viewshed worker & scan (d2 = range - d) ---
+{
+  const f = 5.8e9, range = 50000, d = 15000, pct = 0.6;
+  const inline = (p) => p * fresnelRadiusM(f, d, range - d);
+  ok(inline(pct) > 0, 'inline Fresnel inflation is positive');
+  ok(inline(1.0) > inline(pct), 'inline Fresnel inflation increases with fresnelPct');
+  ok(inline(pct) <= fresnelInflationBoundM(f, d, pct) + 1e-6, 'in-range inflation <= infinite-distance bound (tighter, still conservative)');
+}
+
 // --- effective height ---
 approx(effectiveHeight({ groundElev: 700, mast: 10 }), 710, 0, 'effective height = ground + mast');
 

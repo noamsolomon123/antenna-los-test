@@ -77,6 +77,8 @@
   .scard .yes { color:#6fd388; } .scard .no { color:#ff6b6b; }
   .scard a { color:#8ab4f8; }
   .snum { display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; background:#e67e22; color:#fff; font-weight:800; font-size:.72em; }
+  .scan-mode.active { background:#e67e22; border-color:#e67e22; color:#fff; }
+  .scard .est { color:#9aa0a6; cursor:help; }
 
   #map { flex:1; height:100vh; }
   .dist-label { background:rgba(255,255,255,.93); color:#1a1a1a; font-weight:700; font-size:12px;
@@ -150,9 +152,12 @@
 
   <div class="card scan">
     <h2>🎯 סריקה אוטומטית — נקודות LOS</h2>
-    <div class="row">סורק מהמשקיף ומוצא נקודות קו ראייה במרחקי היעד.</div>
+    <div class="row" id="scan-observer-note">סורק מאנטנה <b>A</b> · מוצא נקודות קו ראייה במרחקי היעד.</div>
     <div class="field">מרחקים (ק"מ): <input id="scan-dists" type="text" value="30, 40, 50" style="width:96px"> · ±<input id="scan-tol" type="number" value="3" min="1" style="width:44px"> ק"מ</div>
-    <div class="obsrow"><button class="obs active" id="scan-mode" style="flex:1">מסדרון — נסיעה אחת</button></div>
+    <div class="obsrow">
+      <button class="obs scan-mode active" id="scan-mode-corridor">מסדרון — נסיעה אחת</button>
+      <button class="obs scan-mode" id="scan-mode-best">הכי טוב בכל מרחק</button>
+    </div>
     <button class="cbtn" id="scan-btn">🔍 סרוק נקודות</button>
     <button class="linkbtn" id="scan-clear">נקה תוצאות</button>
     <div id="scan-progress"><div id="scan-progress-label"></div><div class="bar"><div id="scan-progress-bar"></div></div></div>
@@ -175,8 +180,8 @@
   <div style="display:flex; gap:7px;">
     <div style="width:14px; height:104px; border-radius:3px; border:1px solid rgba(0,0,0,.4);
       background:linear-gradient(to top,#264e78,#366e96,#2e8b57,#74c365,#d6d35a,#c9a056,#9c6e40,#6e4e3c,#f5f5f5)"></div>
-    <div style="display:flex; flex-direction:column; justify-content:space-between; height:104px; font-size:.64em; color:#c5c9ce">
-      <span>1400+</span><span>1000</span><span>700</span><span>400</span><span>150</span><span>0</span><span>ים</span>
+    <div style="display:flex; flex-direction:column; justify-content:space-between; height:104px; font-size:.6em; color:#c5c9ce">
+      <span>2000</span><span>1400</span><span>1000</span><span>700</span><span>400</span><span>150</span><span>0</span><span>‎-50</span><span>‎-430</span>
     </div>
   </div>
 </div>

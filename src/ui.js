@@ -6,7 +6,7 @@ import { ensureCovered, elevation, elevationAt } from './terrain.js';
 import { initMap } from './map.js';
 import { computeViewshed, clearViewshed, cancelViewshed } from './viewshed.js';
 import { renderProfile } from './profile-chart.js';
-import { runScan } from './scan.js';
+import { runScan, cancelScan } from './scan.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
@@ -22,38 +22,56 @@ export function initUI() {
   $('vs-btn').addEventListener('click', runViewshed);
   $('vs-clear').addEventListener('click', () => { cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false); });
   wireScan();
+  updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
 }
 
 // ---------- automated scan -------------------------------------------------
 function wireScan() {
-  const modeBtn = $('scan-mode');
-  modeBtn.addEventListener('click', () => {
-    scanMode = scanMode === 'corridor' ? 'best' : 'corridor';
-    modeBtn.textContent = scanMode === 'corridor' ? 'מסדרון — נסיעה אחת' : 'הכי טוב בכל מרחק';
-  });
+  $('scan-mode-corridor').addEventListener('click', () => setScanMode('corridor'));
+  $('scan-mode-best').addEventListener('click', () => setScanMode('best'));
   $('scan-btn').addEventListener('click', runScanUI);
-  $('scan-clear').addEventListener('click', () => { mapCtl.clearScan(); $('scan-results').innerHTML = ''; });
+  $('scan-clear').addEventListener('click', () => { cancelScan(); mapCtl.clearScan(); $('scan-results').innerHTML = ''; showScanProgress(false); });
 }
 
+function setScanMode(m) {
+  scanMode = m;
+  $('scan-mode-corridor').classList.toggle('active', m === 'corridor');
+  $('scan-mode-best').classList.toggle('active', m === 'best');
+}
+
+function updateObserverNote() {
+  const note = $('scan-observer-note');
+  if (note) note.innerHTML = `סורק מאנטנה <b>${state.observer}</b> · מוצא נקודות קו ראייה במרחקי היעד.`;
+}
+
+// stale coverage/scan belong to the previous observer/position — drop them
+function invalidateObserverDependent() {
+  cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false);
+  cancelScan(); mapCtl.clearScan(); $('scan-results').innerHTML = ''; showScanProgress(false);
+}
+
+// returns { dists (clean, deduped, sorted), droppedCount (invalid / >50 km tokens) }
 function parseDistances() {
-  return ($('scan-dists').value || '')
-    .split(',').map((s) => parseFloat(s.trim()))
-    .filter((n) => Number.isFinite(n) && n > 0 && n <= 50)
-    .sort((a, b) => a - b);
+  const raw = ($('scan-dists').value || '').split(',').map((s) => s.trim()).filter((s) => s.length);
+  const nums = raw.map((s) => parseFloat(s)).filter((n) => Number.isFinite(n) && n > 0 && n <= 50);
+  const dists = [...new Set(nums.map((n) => Math.round(n * 10) / 10))].sort((a, b) => a - b);
+  return { dists, droppedCount: raw.length - nums.length };
 }
 
 async function runScanUI() {
   const obs = state['antenna' + state.observer];
   if (!obs) { setStatus('מקם קודם אנטנה למיקום המשקיף'); return; }
   if (Number.isNaN(obs.groundElev)) { setStatus('אין נתוני שטח במיקום המשקיף — בחר נקודה ביבשה'); return; }
-  const dists = parseDistances();
-  if (!dists.length) { setStatus('הזן מרחקי יעד תקינים (למשל 30, 40, 50)'); return; }
-  const tol = Math.max(1, parseFloat($('scan-tol').value) || 3);
+  const { dists, droppedCount } = parseDistances();
+  if (!dists.length) { setStatus('הזן מרחקי יעד תקינים עד 50 ק"מ (למשל 30, 40, 50)'); return; }
+  setStatus(droppedCount > 0 ? 'התעלמתי מערכים לא תקינים או מעל 50 ק"מ' : '');
+  const rawTol = parseFloat($('scan-tol').value);
+  const tol = Number.isFinite(rawTol) ? Math.min(Math.max(rawTol, 1), 20) : 3;
+  $('scan-tol').value = tol; // reflect the clamped value
   // receiver mast = the other antenna's mast field (editable even before it's placed)
   const rxMast = mastVal(state.observer === 'A' ? 'B' : 'A');
-  setStatus('');
   $('scan-btn').disabled = true;
   showScanProgress(true, 'מתחיל…', 0);
   try {
@@ -61,10 +79,14 @@ async function runScanUI() {
       observer: { ...obs }, distancesKm: dists, toleranceKm: tol, rxMast,
       freqHz: freqHz(), fresnelPct: state.fresnelPct, mode: scanMode, onProgress: onScanProgress,
     });
-    mapCtl.setScanResults(obs, res.points, res.corridorAz, pickScanPoint);
+    mapCtl.setScanResults(res.observer, res.points, res.corridorAz, pickScanPoint); // snapshot origin
     renderScanResults(res);
   } catch (e) {
-    setStatus(e && e.message === 'observer-no-data' ? 'אין נתוני שטח במיקום המשקיף' : 'שגיאה בסריקה');
+    const msg = e && e.message;
+    if (msg === 'cancelled') { /* superseded — stay quiet */ }
+    else if (msg === 'observer-no-data') setStatus('אין נתוני שטח במיקום המשקיף');
+    else if (msg === 'terrain-unavailable') setStatus('שגיאת רשת — נתוני השטח לא נטענו, נסה שוב');
+    else setStatus('שגיאה בסריקה');
   } finally {
     $('scan-btn').disabled = false;
     showScanProgress(false);
@@ -85,10 +107,11 @@ function renderScanResults(res) {
     }
     num++;
     const cls = p.clear ? 'yes' : 'no';
-    const verdict = (p.clear ? '✓ קו ראייה' : '✗ חסום') + (p.confirmed ? '' : ' (משוער)');
+    const verdict = p.clear ? '✓ קו ראייה' : '✗ חסום';
+    const est = p.confirmed ? '' : ' <span class="est" title="הבדיקה המדויקת לא הושלמה (אין נתוני שטח לכל המסלול) — תוצאה מהסריקה הגסה">(משוער)</span>';
     el.insertAdjacentHTML('beforeend', `
       <div class="scard ${cls}" data-i="${i}">
-        <div class="srow"><span class="snum">${num}</span> <b>≈${p.nominalKm} ק"מ</b> · <span class="${cls}">${verdict}</span></div>
+        <div class="srow"><span class="snum">${num}</span> <b>≈${p.nominalKm} ק"מ</b> · <span class="${cls}">${verdict}</span>${est}</div>
         <div class="srow2">מרחק ${p.distanceKm.toFixed(1)} ק"מ · אזימוט ${p.bearingDeg.toFixed(0)}° · גובה ${Math.round(p.groundElev)} מ' · מרווח ${p.marginM.toFixed(1)} מ'</div>
         <div class="srow2"><span class="coords">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span> · <a href="https://waze.com/ul?ll=${p.lat},${p.lon}&navigate=yes" target="_blank">Waze</a> · <a href="https://maps.google.com/?q=${p.lat},${p.lon}" target="_blank">Maps</a></div>
         <button class="linkbtn setb">הצב לבדיקה מדויקת ←</button>
@@ -138,6 +161,7 @@ function placeAntenna(which, latlng) {
     mapCtl.setAntenna(which, [ant.lat, ant.lon], tipFor(which));
     recomputeLink(false);
   });
+  if (which === state.observer) invalidateObserverDependent();
   if (which === 'A' && !state.antennaB) selectAntenna('B');
   updateCards();
   recomputeLink(true);
@@ -149,6 +173,7 @@ function onMove(which, latlng, ended) {
   ant.lat = latlng.lat; ant.lon = latlng.lng;
   if (which === state.observer) mapCtl.setRing([ant.lat, ant.lon]);
   if (ended) {
+    if (which === state.observer) invalidateObserverDependent();
     elevationAt(ant.lat, ant.lon, PROFILE_ZOOM).then((g) => {
       if (state['antenna' + which] !== ant) return;
       ant.groundElev = g;
@@ -298,6 +323,8 @@ function wireObserver() {
         const a = state['antenna' + x];
         if (a) mapCtl.setAntenna(x, [a.lat, a.lon], tipFor(x));
       });
+      invalidateObserverDependent(); // prior coverage/scan belonged to the old observer
+      updateObserverNote();
     });
   });
 }
