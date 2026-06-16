@@ -116,8 +116,8 @@ function roadsBox(candidates, padDeg = 0.02) {
 }
 
 /** Run the full explore from `observer`: margin grid -> curated candidates + route. */
-export async function runExplore({ observer, rxMast, freqHz, fresnelPct, onProgress }) {
-  const r = await computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, onProgress });
+export async function runExplore({ observer, rxMast, freqHz, fresnelPct, onProgress, maxRangeM }) {
+  const r = await computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, onProgress, maxRangeM });
   const candidates = curate(r.grid, r.gridN, r.box, r.maxRangeM, r.observer, isSafe);
   for (const c of candidates) {
     const g = elevation(c.lat, c.lon, ZOOM);

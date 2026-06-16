@@ -63,10 +63,10 @@ function renderRaster(margin, gridN, box) {
  * Shared by the viewshed (rendered binary) and the explore view (curated points).
  * Returns { grid:Float32, gridN, box, observer, maxRangeM }.
  */
-export async function computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, onProgress }) {
+export async function computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, onProgress, maxRangeM = MAX_RANGE_M }) {
   invalidate(); // supersede any prior result but keep the worker for reuse
   const myToken = ++runToken;
-  const box = squareBox(observer.lat, observer.lon, MAX_RANGE_M);
+  const box = squareBox(observer.lat, observer.lon, maxRangeM);
 
   onProgress?.('tiles', 0);
   await ensureCovered(box, ZOOM, (d, t) => onProgress?.('tiles', d / t));
@@ -74,6 +74,7 @@ export async function computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, 
 
   const g = elevation(observer.lat, observer.lon, ZOOM);
   const obs = { ...observer, groundElev: Number.isNaN(g) ? observer.groundElev : g };
+  if (Number.isNaN(obs.groundElev)) throw new Error('observer-no-data'); // sea / no terrain data
 
   onProgress?.('compute', 0);
   const elev = buildGrid(box, ELEV_GRID, ELEV_GRID, ZOOM);
@@ -93,13 +94,13 @@ export async function computeMarginGrid({ observer, rxMast, freqHz, fresnelPct, 
         type: 'compute',
         elev, ew: ELEV_GRID, eh: ELEV_GRID, box,
         observer: obs, rxMast, freqHz, fresnelPct,
-        rays: RAYS, stepM: STEP_M, gridN: OUT_GRID, maxRangeM: MAX_RANGE_M,
+        rays: RAYS, stepM: STEP_M, gridN: OUT_GRID, maxRangeM,
       },
       [elev.buffer]
     );
   });
   if (myToken !== runToken) throw new Error('cancelled');
-  return { grid: result.margin, gridN: result.gridN, box: result.box, observer: obs, maxRangeM: MAX_RANGE_M };
+  return { grid: result.margin, gridN: result.gridN, box: result.box, observer: obs, maxRangeM };
 }
 
 /**

@@ -20,7 +20,7 @@ function initMap() {
 }
 
 function placeObserver(latlng) {
-  observer = { lat: latlng.lat, lon: latlng.lng, mast: 3, groundElev: 0 };
+  observer = { lat: latlng.lat, lon: latlng.lng, mast: 3, groundElev: NaN }; // resolved/validated at search time
   if (obsMarker) map.removeLayer(obsMarker);
   obsMarker = L.marker([observer.lat, observer.lon], {
     icon: L.divIcon({ className: '', html: '<div style="background:#e74c3c;color:#fff;font-weight:800;font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap">📡 משקיף</div>', iconSize: [72, 24], iconAnchor: [36, 24] }),
@@ -32,13 +32,8 @@ function placeObserver(latlng) {
 
 function wireObserverSearch() {
   const input = $('obs-search'), box = $('obs-results');
-  input.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    if (input.value.trim().length < 2) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div class="sresult msg">מחפש…</div>';
-    let results = [];
-    try { results = await searchPlaces(input.value); } catch (_) { /* network */ }
-    if (!results.length) { box.innerHTML = '<div class="sresult msg">לא נמצאו תוצאות</div>'; return; }
+  let lastQuery = '', lastResults = [];
+  const renderResults = (results) => {
     box.innerHTML = '';
     results.forEach((r) => {
       const d = document.createElement('div');
@@ -47,7 +42,21 @@ function wireObserverSearch() {
       d.onclick = () => { placeObserver({ lat: r.lat, lng: r.lon }); map.flyTo([r.lat, r.lon], 12); box.innerHTML = ''; };
       box.appendChild(d);
     });
+  };
+  input.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    const q = input.value.trim();
+    if (q.length < 2) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="sresult msg">מחפש…</div>';
+    let results = [], failed = false;
+    try { results = await searchPlaces(q); } catch (_) { failed = true; }
+    lastQuery = q; lastResults = results;
+    if (failed) { box.innerHTML = '<div class="sresult msg">שגיאת רשת — נסה שוב</div>'; return; }
+    if (!results.length) { box.innerHTML = '<div class="sresult msg">לא נמצאו תוצאות</div>'; return; }
+    renderResults(results);
   });
+  // re-show the last results on focus instead of forcing a new fetch
+  input.addEventListener('focus', () => { if (!box.children.length && input.value.trim() === lastQuery && lastResults.length) renderResults(lastResults); });
   document.addEventListener('click', (e) => { if (!e.target.closest('.searchbox')) box.innerHTML = ''; });
 }
 
@@ -58,11 +67,13 @@ function bandOf(c) {
 async function runSearch() {
   if (!observer) { return; }
   $('search-btn').disabled = true;
+  if (highlight) { map.removeLayer(highlight); highlight = null; }
   $('presenter').innerHTML = '';
   $('results').innerHTML = '';
   showProgress(true, 'מתחיל…', 0);
   try {
-    const res = await runExplore({ observer: { ...observer }, rxMast: 3, freqHz: 5.8e9, fresnelPct: 0.6, onProgress });
+    // maxRangeM = max band + tolerance so the 50 km band's full window is reachable
+    const res = await runExplore({ observer: { ...observer }, rxMast: 3, freqHz: 5.8e9, fresnelPct: 0.6, onProgress, maxRangeM: 53000 });
     found = res.candidates.filter((c) =>
       c.roadDistM != null && c.roadDistM <= MAX_ROAD_M &&
       BANDS.some((b) => Math.abs(c.distanceKm - b) <= TOL_KM));
@@ -73,7 +84,10 @@ async function runSearch() {
     if (found.length) present(0);
     else $('presenter').innerHTML = '<div class="card"><div class="muted">לא נמצאו נקודות נגישות לרכב במרחקי 30/40/50 ק"מ. בתורן 3 מ\' קו הראייה מוגבל — נסה משקיף גבוה יותר, או מיקום/כיוון אחר.</div></div>';
   } catch (e) {
-    $('presenter').innerHTML = '<div class="card"><div class="muted">שגיאה בחיפוש — נסה שוב.</div></div>';
+    const msg = e && e.message === 'observer-no-data'
+      ? 'אין נתוני שטח במיקום המשקיף — בחר נקודה ביבשה.'
+      : 'שגיאה בחיפוש — נסה שוב.';
+    $('presenter').innerHTML = `<div class="card"><div class="muted">${msg}</div></div>`;
   } finally {
     $('search-btn').disabled = false;
     showProgress(false);
@@ -155,11 +169,13 @@ function showProgress(on, text, frac) {
   if (frac != null) $('search-progress-bar').style.width = `${Math.round(frac * 100)}%`;
 }
 
-// arrow keys match the button arrows (← next, → previous)
+// arrow keys match the button arrows (← next, → previous) — but not while typing
 document.addEventListener('keydown', (e) => {
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
   if (!found.length) return;
-  if (e.key === 'ArrowLeft') present(idx + 1);
-  else if (e.key === 'ArrowRight') present(idx - 1);
+  if (e.key === 'ArrowLeft') { e.preventDefault(); present(idx + 1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); present(idx - 1); }
 });
 
 initMap();
