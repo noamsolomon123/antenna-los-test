@@ -1,0 +1,228 @@
+// ui.js — wires the sidebar DOM, app state, map controller, link analysis and
+// the viewshed compute together. The single controller for user interaction.
+import { state, update, freqHz, DEFAULT_MAST } from './state.js';
+import { analyzeLink, effectiveHeight } from './los.js';
+import { ensureCovered, elevation, elevationAt } from './terrain.js';
+import { initMap } from './map.js';
+import { computeViewshed, clearViewshed, cancelViewshed } from './viewshed.js';
+import { renderProfile } from './profile-chart.js';
+
+const PROFILE_ZOOM = 12;
+const $ = (id) => document.getElementById(id);
+let mapCtl;
+let linkTimer = null;
+
+export function initUI() {
+  mapCtl = initMap('map', { onMapClick, onMove, onSelect: selectAntenna, onHover });
+  wireFrequency();
+  wireMasts();
+  wireObserver();
+  $('vs-btn').addEventListener('click', runViewshed);
+  $('vs-clear').addEventListener('click', () => { clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; });
+  selectAntenna('A');
+  renderVerdict(null);
+}
+
+// ---------- map interactions ------------------------------------------------
+function onMapClick(latlng) {
+  if (!state.antennaA) placeAntenna('A', latlng);
+  else if (!state.antennaB) placeAntenna('B', latlng);
+  else placeAntenna(mapCtl.getSelected(), latlng);
+}
+
+function placeAntenna(which, latlng) {
+  const mast = mastVal(which);
+  const ant = { lat: latlng.lat, lon: latlng.lng, groundElev: 0, mast };
+  update({ ['antenna' + which]: ant });
+  mapCtl.setAntenna(which, [ant.lat, ant.lon], '…');
+  if (which === state.observer) mapCtl.setRing([ant.lat, ant.lon]);
+  // fetch ground elevation, then refine
+  elevationAt(ant.lat, ant.lon, PROFILE_ZOOM).then((g) => {
+    if (!Number.isNaN(g)) { ant.groundElev = g; updateCards(); recomputeLink(false); }
+  });
+  if (which === 'A' && !state.antennaB) selectAntenna('B');
+  updateCards();
+  recomputeLink(true);
+}
+
+function onMove(which, latlng, ended) {
+  const ant = state['antenna' + which];
+  if (!ant) return;
+  ant.lat = latlng.lat; ant.lon = latlng.lng;
+  if (which === state.observer) mapCtl.setRing([ant.lat, ant.lon]);
+  if (ended) {
+    elevationAt(ant.lat, ant.lon, PROFILE_ZOOM).then((g) => {
+      if (!Number.isNaN(g)) { ant.groundElev = g; updateCards(); }
+    });
+  }
+  recomputeLink(ended);
+}
+
+function onSelect(which) { selectAntenna(which); }
+
+function selectAntenna(which) {
+  mapCtl.setSelected(which);
+  ['A', 'B'].forEach((w) => $('card' + w)?.classList.toggle('selected', w === which));
+}
+
+function onHover(latlng, elev) {
+  const e = Number.isNaN(elev) ? '—' : `${Math.round(elev)} מ'`;
+  $('hover').innerHTML = `סמן: ${latlng.lat.toFixed(3)}, ${latlng.lng.toFixed(3)} · גובה <b>${e}</b>`;
+}
+
+// ---------- link analysis ---------------------------------------------------
+function recomputeLink(ensure) {
+  clearTimeout(linkTimer);
+  linkTimer = setTimeout(() => doRecompute(ensure), ensure ? 0 : 90);
+}
+
+async function doRecompute(ensure) {
+  const a = state.antennaA, b = state.antennaB;
+  if (!a || !b) { renderVerdict(null); $('profile').innerHTML = ''; mapCtl.drawLink(null, null); return; }
+  if (ensure) {
+    setStatus('טוען נתוני שטח…');
+    await ensureCovered(pathBox(a, b), PROFILE_ZOOM);
+    setStatus('');
+    const ga = elevation(a.lat, a.lon, PROFILE_ZOOM); if (!Number.isNaN(ga)) a.groundElev = ga;
+    const gb = elevation(b.lat, b.lon, PROFILE_ZOOM); if (!Number.isNaN(gb)) b.groundElev = gb;
+  }
+  const result = analyzeLink({
+    a, b, freqHz: freqHz(), fresnelPct: state.fresnelPct,
+    sampleElev: (la, lo) => elevation(la, lo, PROFILE_ZOOM),
+  });
+  update({ link: result });
+  renderVerdict(result);
+  renderProfile($('profile'), result);
+  mapCtl.drawLink(L.latLng(a.lat, a.lon), L.latLng(b.lat, b.lon), result.clear);
+  mapCtl.setAntenna('A', [a.lat, a.lon], tipFor('A'));
+  mapCtl.setAntenna('B', [b.lat, b.lon], tipFor('B'));
+  updateCards();
+}
+
+function pathBox(a, b) {
+  const pad = 0.03;
+  return {
+    south: Math.min(a.lat, b.lat) - pad, north: Math.max(a.lat, b.lat) + pad,
+    west: Math.min(a.lon, b.lon) - pad, east: Math.max(a.lon, b.lon) + pad,
+  };
+}
+
+// ---------- rendering -------------------------------------------------------
+function renderVerdict(r) {
+  const big = $('v-result');
+  if (!r) {
+    $('v-dist').textContent = '—'; $('v-az').textContent = '—';
+    big.textContent = 'מקם אנטנה A ו-B במפה'; big.className = 'big neutral';
+    $('v-clearance').textContent = '';
+    return;
+  }
+  $('v-dist').textContent = r.distanceKm.toFixed(1) + ' ק"מ';
+  $('v-az').textContent = r.bearingDeg.toFixed(0) + '°';
+  $('v-freq').textContent = fmtFreq(state.frequencyMHz);
+  if (!r.hasData) {
+    big.textContent = '— אין נתוני שטח —'; big.className = 'big neutral';
+    $('v-clearance').textContent = '';
+    return;
+  }
+  big.textContent = r.clear ? '✓ יש קו ראייה — כן' : '✗ אין קו ראייה — לא';
+  big.className = 'big ' + (r.clear ? 'yes' : 'no');
+  $('v-clearance').innerHTML =
+    `מרווח פרנל מינימלי: <b>${r.minMargin.toFixed(1)} מ'</b> · נקודה קובעת בק"מ ${r.minAtKm.toFixed(1)}`;
+}
+
+function updateCards() {
+  ['A', 'B'].forEach((w) => {
+    const ant = state['antenna' + w];
+    if (!ant) return;
+    $(`ant${w}-coords`).textContent = `${ant.lat.toFixed(4)}, ${ant.lon.toFixed(4)}`;
+    $(`ant${w}-ground`).textContent = `${Math.round(ant.groundElev)} מ'`;
+    $(`ant${w}-eff`).textContent = `${Math.round(effectiveHeight(ant))} מ'`;
+  });
+}
+
+function tipFor(which) {
+  const ant = state['antenna' + which];
+  const base = which === 'A' ? 'משקיף · ' : '';
+  return ant ? `${base}${Math.round(effectiveHeight(ant))} מ'` : '';
+}
+
+// ---------- controls --------------------------------------------------------
+function mastVal(which) {
+  const v = parseFloat($(`ant${which}-mast`).value);
+  return Number.isFinite(v) ? v : DEFAULT_MAST;
+}
+
+function wireMasts() {
+  ['A', 'B'].forEach((w) => {
+    $(`ant${w}-mast`).addEventListener('input', () => {
+      const ant = state['antenna' + w];
+      if (ant) { ant.mast = mastVal(w); updateCards(); recomputeLink(true); }
+    });
+  });
+}
+
+function wireFrequency() {
+  const input = $('freq-input');
+  const apply = () => {
+    const mhz = parseInt(input.value, 10);
+    if (!Number.isFinite(mhz) || mhz <= 0) return;
+    update({ frequencyMHz: mhz });
+    $('freq-ghz').textContent = fmtFreq(mhz);
+    document.querySelectorAll('.preset').forEach((b) => b.classList.toggle('active', +b.dataset.mhz === mhz));
+    recomputeLink(true);
+  };
+  input.addEventListener('input', apply);
+  document.querySelectorAll('.preset').forEach((b) =>
+    b.addEventListener('click', () => { input.value = b.dataset.mhz; apply(); }));
+}
+
+function wireObserver() {
+  ['A', 'B'].forEach((w) => {
+    $('obs-' + w).addEventListener('click', () => {
+      update({ observer: w });
+      $('obs-A').classList.toggle('active', w === 'A');
+      $('obs-B').classList.toggle('active', w === 'B');
+      const ant = state['antenna' + w];
+      if (ant) mapCtl.setRing([ant.lat, ant.lon]);
+    });
+  });
+}
+
+// ---------- viewshed --------------------------------------------------------
+async function runViewshed() {
+  const obs = state['antenna' + state.observer];
+  if (!obs) { setStatus('מקם קודם אנטנה למיקום המשקיף'); return; }
+  const otherAnt = state['antenna' + (state.observer === 'A' ? 'B' : 'A')];
+  const rxMast = otherAnt ? otherAnt.mast : DEFAULT_MAST;
+  $('vs-btn').disabled = true;
+  showProgress(true, 'מתחיל…');
+  try {
+    const { stats } = await computeViewshed({
+      map: mapCtl.map, observer: { ...obs }, rxMast,
+      freqHz: freqHz(), fresnelPct: state.fresnelPct, onProgress,
+    });
+    $('vs-stats').innerHTML =
+      `כיסוי קו ראייה: <b>${(stats.coverage * 100).toFixed(0)}%</b> מהשטח שנבדק (תורן מקבל ${rxMast} מ')`;
+  } catch (e) {
+    setStatus('שגיאה בחישוב הכיסוי');
+  } finally {
+    $('vs-btn').disabled = false;
+    showProgress(false);
+  }
+}
+
+function onProgress(phase, frac) {
+  const label = phase === 'tiles' ? 'טוען נתוני שטח' : phase === 'compute' ? 'מחשב קו ראייה' : 'מסיים';
+  showProgress(true, `${label}… ${Math.round(frac * 100)}%`, frac);
+}
+
+function showProgress(on, text, frac) {
+  const wrap = $('vs-progress');
+  wrap.style.display = on ? 'block' : 'none';
+  if (text != null) $('vs-progress-label').textContent = text;
+  if (frac != null) $('vs-progress-bar').style.width = `${Math.round(frac * 100)}%`;
+}
+
+function setStatus(t) { $('status').textContent = t || ''; }
+
+function fmtFreq(mhz) { return mhz >= 1000 ? `${(mhz / 1000).toFixed(mhz % 1000 ? 2 : 1)} GHz` : `${mhz} MHz`; }

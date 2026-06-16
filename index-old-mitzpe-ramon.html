@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>בדיקת אנטנות — קו ראייה בנגב | Antenna LOS Test — Negev</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root{
+    --clear:#1f9d55; --marginal:#e08a00; --blocked:#d83232; --base:#2b6cff;
+    --bg:#0e1116; --panel:#161b22; --line:#283040; --txt:#e6edf3; --muted:#8b97a7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt)}
+  #app{display:flex;height:100vh;width:100vw}
+  #map{flex:1;height:100%}
+  #panel{width:380px;max-width:46vw;height:100%;overflow-y:auto;background:var(--panel);border-inline-start:1px solid var(--line)}
+  header{padding:16px 18px;border-bottom:1px solid var(--line)}
+  header h1{font-size:17px;margin:0 0 4px}
+  header p{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
+  .base-card{margin:14px 16px;padding:12px 14px;background:#10243f;border:1px solid #1d3a63;border-radius:10px;font-size:13px}
+  .base-card b{color:#7fb0ff}
+  .band{margin:12px 16px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .band-h{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#1b2230;cursor:pointer;font-weight:600}
+  .band-h .km{margin-inline-start:auto;font-size:18px;color:var(--muted);font-weight:700}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;border:2px solid #0008}
+  .pt{padding:10px 12px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.55;cursor:pointer}
+  .pt:hover{background:#1a2130}
+  .pt .nm{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:7px}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:20px;margin-inline-start:4px;vertical-align:middle}
+  .tag.primary{background:#243b22;color:#9fe6a0}
+  .tag.backup{background:#2a2a2a;color:#bbb}
+  .tag.fz{background:#3a1f1f;color:#ffb0b0}
+  .verdict{font-weight:600}
+  .v-clear{color:var(--clear)} .v-marginal{color:var(--marginal)} .v-blocked{color:var(--blocked)}
+  .meta{color:var(--muted);margin-top:3px}
+  .legend{margin:14px 16px 28px;font-size:12px;color:var(--muted)}
+  .legend .row{display:flex;align-items:center;gap:8px;margin:5px 0}
+  .leaflet-popup-content{font-size:12.5px;line-height:1.5;direction:rtl}
+  .leaflet-popup-content b{color:#111}
+  .toggle{display:none}
+  @media(max-width:760px){
+    #app{flex-direction:column}#map{height:55vh;flex:none}#panel{width:100%;max-width:100%;height:45vh}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <aside id="panel">
+    <header>
+      <h1>📡 בדיקת קו-ראייה לאנטנות — רמת הנגב</h1>
+      <p>תחנת בסיס קבועה במצפה רמון. אנטנה ניידת נעה בין יעדים במרחקי 20 / 30 / 40 / 50 ק״מ.
+      צבע הקו = איכות קו-הראייה (LOS). לחצו על נקודה כדי למקד במפה.</p>
+    </header>
+    <div class="base-card">
+      <b>תחנת בסיס (קבועה)</b> — מצפה רמון, שפת המכתש<br>
+      30.6094, 34.8018 · ~865 מ׳ + תורן ~4 מ׳ → ~869 מ׳ מעל פני הים
+    </div>
+    <div id="bands"></div>
+    <div class="legend">
+      <div class="row"><span class="dot" style="background:var(--base)"></span> תחנת בסיס</div>
+      <div class="row"><span class="dot" style="background:var(--clear)"></span> LOS פתוח (clear)</div>
+      <div class="row"><span class="dot" style="background:var(--marginal)"></span> גבולי (marginal — נשיקת פרנל)</div>
+      <div class="row"><span class="dot" style="background:var(--blocked)"></span> חסום (blocked)</div>
+      <div class="row">⚠️ = בתוך שטח אש / שמורה — דורש תיאום</div>
+      <p style="margin-top:12px">⚠️ הערכת ה-LOS מבוססת DEM ברזולוציה ~30–90 מ׳ עם עקמומיות k=4/3. לפני יציאה לשטח אַמתו עם HeyWhatsThat או פרופיל-קרקע ב-Google Earth, ובדקו סטטוס שטח-אש מול פיקוד הדרום.</p>
+    </div>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const BASE = {lat:30.6094, lon:34.8018, name_he:"מצפה רמון (שפת המכתש)", name_en:"Mitzpe Ramon rim", elev:865, eff:869};
+
+const COLORS = {clear:"#1f9d55", marginal:"#e08a00", blocked:"#d83232"};
+const HEB = {clear:"פתוח", marginal:"גבולי", blocked:"חסום"};
+
+// Scout-researched targets. dist=great-circle km, brg=bearing from base.
+const BANDS = [
+ { km:20, points:[
+   {role:"primary", name_he:"הר רמון", name_en:"Mount Ramon", lat:30.5022, lon:34.6356, elev:1037, dist:19.9, brg:233,
+    los:"clear", note:"LOS פתוח אופטית, נשיקת פרנל קלה. ייעד SW על שפת המכתש.", fz:true,
+    fz_txt:"שמורת מכתש רמון + שטח אש דרום-מערבי (תיאום פיקוד הדרום)", access:"אין גישת רכב לפסגה — מעפילים מאזור בארות/כביש 171, טיפוס רגלי כחצי יום.", conf:"בינונית-גבוהה"},
+   {role:"backup", name_he:"הר סגיא", name_en:"Har Saggi", lat:30.5130, lon:34.6400, elev:1006, dist:18.8, brg:235,
+    los:"clear", note:"פתוח אופטית, מרווח פרנל צמוד יותר מהר רמון.", fz:true,
+    fz_txt:"שמורת מכתש רמון + שטח אש", access:"אותו מסדרון גישה כמו הר רמון, פסגה נפרדת מצפון-מזרח.", conf:"בינונית"},
+ ], note_he:"⚠️ במסדרון הצפוני אין נקודה גבוהה ב-20 ק״מ — רכס 750–800 מ׳ צפונית לבסיס חוסם הכול. קו-ראייה נקי קיים רק דרום-מערבה."},
+
+ { km:30, points:[
+   {role:"primary", name_he:"הר קטוע", name_en:"Har Katu'a", lat:30.8748, lon:34.8353, elev:587, dist:29.7, brg:6,
+    los:"marginal", note:"גיאומטרית פתוח (יורד צפונה) אך שפת רמת עבדת ב-20–23 ק״מ נושקת לאזור פרנל התחתון.", fz:false,
+    fz_txt:"", access:"רמת שדה-בוקר/מדרשת בן-גוריון, כביש 40 ואז דרכי עפר 4×4, הליכה קצרה לפסגה.", conf:"בינונית"},
+   {role:"backup", name_he:"הוד עקב", name_en:"Hod Akev", lat:30.8288, lon:34.8255, elev:574, dist:24.5, brg:5,
+    los:"marginal", note:"קונוס חד מעל נחל צין, חזית דרומית חשופה לבסיס. נתיב זהה, 5 ק״מ קרוב יותר.", fz:false,
+    fz_txt:"גן הפסלים / סביבת עין עבדת — ללא שטח אש", access:"רכב לרמת מדרשת, ואז טיפוס רגלי תלול קצר (טיול יום פופולרי).", conf:"בינונית"},
+ ], note_he:"חלופה בטוחה ל-LOS: רמת עבדת (30.7939, 34.7717, 620 מ׳, 20.7 ק״מ) — כביש סלול, חשיפה דרומית נקייה, אך רק ~21 ק״מ."},
+
+ { km:40, points:[
+   {role:"primary", name_he:"הר רחמה", name_en:"Har Rahama", lat:30.9570, lon:34.8682, elev:652, dist:39.2, brg:9,
+    los:"clear", note:"קו יורד צפונה לעבר אגן ירוחם, גיאומטריה נוחה. נקודת בדיקה: 5–8 ק״מ הראשונים מהשפה.", fz:false,
+    fz_txt:"לאמת — הר רחמה עצמו לא מסומן שטח אש, אך רכס ירוחם ממזרח כן.", access:"פסגה מסומנת ממערב לירוחם, דרכי עפר מאזור כביש 204, הליכה קצרה.", conf:"בינונית"},
+   {role:"backup", name_he:"הר אבנון", name_en:"Har Avnon", lat:30.9723, lon:34.9811, elev:656, dist:43.8, brg:23,
+    los:"clear", note:"קו יורד נקי לעבר מצפה המכתש הגדול. הבחירה המעשית הטובה ביותר בכל הסט.", fz:false,
+    fz_txt:"", access:"גישת רכב מצוינת — דרך עפר מהוקצעת מכביש 225, חניון ומצפה בפסגה. כל רכב.", conf:"בינונית-גבוהה"},
+ ], note_he:"הר אבנון = הקישור הקל ביותר לביצוע בשטח (כביש + מצפה). הר רחמה = קולינארי יותר עם המסדרון הצפוני."},
+
+ { km:50, points:[
+   {role:"primary", name_he:"רכס צין (צפון-מערב אורון)", name_en:"Rekhes Tzin ridge", lat:31.0050, lon:35.0250, elev:647, dist:48.9, brg:26,
+    los:"clear", note:"הנתיב עולה דרך אגן נחל צין הנמוך (300–400 מ׳) — מרווח צמוד (+4 מ׳) בקצה היעד.", fz:true,
+    fz_txt:"בתוך שטח אש אורון/צין — חובה תיאום ובדיקת אש פעילה. מערבית למתחם דימונה הסגור.", access:"כביש 206 (אורון) ודרכי שירות, נסיעה+הליכה קצרה לרכס.", conf:"בינונית"},
+   {role:"backup", name_he:"גבעה צפונית לשטח האש", name_en:"Knoll N of Tzin FZ", lat:31.0560, lon:34.9940, elev:566, dist:52.9, brg:20,
+    los:"blocked", note:"מרווח −5 מ׳ ב-40 ק״מ — מסיב צין/אבנון חותך את אזור פרנל התחתון. חוקי לחלוטין אך כנראה מוגבל-עקיפה.", fz:false,
+    fz_txt:"מחוץ לכל פוליגון צבאי — נגב ריבוני", access:"מצד ירוחם-דימונה בדרכי עפר.", conf:"נמוכה ל-LOS, גבוהה לנגישות"},
+ ], note_he:"חלופה לנוחות בלבד (LOS חסום −12 מ׳): שמורת ממשית (31.025, 35.064, 51.5 ק״מ, כביש סלול)."},
+];
+
+const map = L.map('map', {zoomControl:true}).setView([30.78, 34.86], 9);
+const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  {maxZoom:17, attribution:'© OpenTopoMap (CC-BY-SA), © OpenStreetMap'}).addTo(map);
+const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:18, attribution:'Esri World Imagery'});
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {maxZoom:19, attribution:'© OpenStreetMap'});
+L.control.layers({"טופוגרפי":topo, "לוויין":sat, "מפת רחוב":osm}, null, {position:'topleft'}).addTo(map);
+
+// Range rings
+[20,30,40,50].forEach(km=>{
+  L.circle([BASE.lat,BASE.lon], {radius:km*1000, color:'#5a6b85', weight:1, dashArray:'4 6', fill:false, interactive:false}).addTo(map);
+  const p = L.latLng(BASE.lat,BASE.lon);
+  const edge = destPoint(BASE.lat, BASE.lon, 315, km); // label NW
+  L.marker([edge.lat, edge.lon], {interactive:false, icon: L.divIcon({className:'',html:`<div style="color:#9fb0cc;font:600 11px Segoe UI;text-shadow:0 0 3px #000">${km} ק״מ</div>`})}).addTo(map);
+});
+
+// Base marker
+const baseIcon = L.divIcon({className:'', html:`<div style="width:18px;height:18px;border-radius:50%;background:${'#2b6cff'};border:3px solid #fff;box-shadow:0 0 6px #000"></div>`, iconSize:[18,18], iconAnchor:[9,9]});
+L.marker([BASE.lat,BASE.lon], {icon:baseIcon, zIndexOffset:1000}).addTo(map)
+ .bindPopup(`<b>תחנת בסיס — ${BASE.name_he}</b><br>${BASE.name_en}<br>${BASE.lat}, ${BASE.lon}<br>קרקע ${BASE.elev} מ׳ · אפקטיבי ${BASE.eff} מ׳`);
+
+const markers = {};
+const bandsEl = document.getElementById('bands');
+
+BANDS.forEach(band=>{
+  // panel band block
+  const wrap = document.createElement('div'); wrap.className='band';
+  const verdictColor = COLORS[band.points[0].los];
+  wrap.innerHTML = `<div class="band-h"><span class="dot" style="background:${verdictColor}"></span> טווח ${band.km} ק״מ <span class="km">${band.km}</span></div>`;
+  band.points.forEach((pt,i)=>{
+    const id = `${band.km}-${pt.role}`;
+    const c = COLORS[pt.los];
+    // map line (primary solid, backup dashed)
+    const line = L.polyline([[BASE.lat,BASE.lon],[pt.lat,pt.lon]],
+      {color:c, weight:pt.role==='primary'?3.5:2, opacity:0.9, dashArray: pt.role==='primary'?null:'6 7'}).addTo(map);
+    // map marker
+    const r = pt.role==='primary'?9:6.5;
+    const m = L.circleMarker([pt.lat,pt.lon], {radius:r, color:'#0008', weight:2, fillColor:c, fillOpacity:0.95}).addTo(map);
+    m.bindPopup(
+      `<b>${pt.name_he}</b> — ${pt.name_en}<br>`+
+      `<b>${pt.elev} מ׳</b> · ${pt.dist} ק״מ · אזימוט ${pt.brg}°<br>`+
+      `LOS: <span style="color:${c};font-weight:700">${HEB[pt.los]}</span> (${pt.los})<br>`+
+      (pt.fz?`⚠️ ${pt.fz_txt}<br>`:'')+
+      `<small>${pt.note}<br>גישה: ${pt.access}<br>ביטחון: ${pt.conf}</small>`);
+    markers[id] = m;
+    // panel row
+    const row = document.createElement('div'); row.className='pt';
+    row.innerHTML =
+      `<div class="nm"><span class="dot" style="background:${c}"></span>${pt.name_he} <span class="tag ${pt.role}">${pt.role==='primary'?'ראשי':'גיבוי'}</span>${pt.fz?'<span class="tag fz">⚠️ שטח אש</span>':''}</div>`+
+      `<div class="meta">${pt.elev} מ׳ · ${pt.dist} ק״מ · אזימוט ${pt.brg}° · LOS <span class="verdict v-${pt.los}">${HEB[pt.los]}</span> · ביטחון ${pt.conf}</div>`+
+      `<div class="meta">${pt.note}</div>`+
+      (pt.fz?`<div class="meta">⚠️ ${pt.fz_txt}</div>`:'')+
+      `<div class="meta">🚗 ${pt.access}</div>`;
+    row.onclick=()=>{ map.flyTo([pt.lat,pt.lon],12); m.openPopup(); };
+    wrap.appendChild(row);
+  });
+  if(band.note_he){ const n=document.createElement('div'); n.className='pt'; n.style.cursor='default';
+    n.innerHTML=`<div class="meta" style="color:#c8d3e2">${band.note_he}</div>`; wrap.appendChild(n);}
+  bandsEl.appendChild(wrap);
+});
+
+// haversine destination point (for ring labels)
+function destPoint(lat,lon,brgDeg,distKm){
+  const R=6371, d=distKm/R, b=brgDeg*Math.PI/180, la=lat*Math.PI/180, lo=lon*Math.PI/180;
+  const la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(b));
+  const lo2=lo+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la), Math.cos(d)-Math.sin(la)*Math.sin(la2));
+  return {lat:la2*180/Math.PI, lon:lo2*180/Math.PI};
+}
+
+map.fitBounds(L.latLngBounds([[30.45,34.55],[31.10,35.10]]).pad(0.05));
+</script>
+</body>
+</html>

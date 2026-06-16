@@ -1,0 +1,10 @@
+{
+  "name": "antenna-los-test",
+  "version": "1.0.0",
+  "description": "Interactive in-browser line-of-sight & viewshed tool for Israel",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node tests/los.test.js"
+  }
+}
