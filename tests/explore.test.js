@@ -90,4 +90,31 @@ const approx = (a, b, t, m) => { assert.ok(Math.abs(a - b) <= t, `${m}: ${a} vs 
   ok(sortCandidates(cs, 'route')[0].lat === 31.3, 'route sort lists the most-southern point first');
 }
 
+// --- car access (road distance) ---
+{
+  // road sort: nearest road first
+  const cs = [
+    { roadDistM: 500, distanceKm: 20, marginM: 5 },
+    { roadDistM: 100, distanceKm: 30, marginM: 5 },
+    { roadDistM: 900, distanceKm: 25, marginM: 5 },
+  ];
+  ok(sortCandidates(cs, 'road', 'asc')[0].roadDistM === 100, 'road sort lists the nearest-road spot first');
+
+  // maxRoadKm filter keeps near + unknown, drops far
+  const f = [
+    { roadDistM: 200, distanceKm: 10, marginM: 1 },
+    { roadDistM: 1500, distanceKm: 10, marginM: 1 },
+    { roadDistM: null, distanceKm: 10, marginM: 1 },
+  ];
+  const kept = filterCandidates(f, { maxRoadKm: 1 });
+  ok(kept.length === 2 && !kept.some((c) => c.roadDistM === 1500), 'maxRoadKm drops far-from-road, keeps near + unknown');
+
+  // route prefers the nearer-road of two otherwise-equal candidates
+  const observer = { lat: 31.5, lon: 35.0 };
+  const nearRoad = { lat: 31.45, lon: 35.0, distanceKm: 5.6, marginM: 10, roadDistM: 50 };
+  const farRoad = { lat: 31.45, lon: 35.01, distanceKm: 5.6, marginM: 10, roadDistM: 5000 };
+  const route = buildRoute([farRoad, nearRoad], observer, {});
+  ok(route[0] === nearRoad, 'buildRoute prefers the spot nearer a road');
+}
+
 console.log(`\n✅ all ${passed} explore assertions passed`);

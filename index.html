@@ -144,14 +144,14 @@
   <div class="card" id="cardA" style="--c:#e74c3c">
     <h2><span class="badge" style="background:#e74c3c">A</span> אנטנה A</h2>
     <div class="row"><span class="coords" id="antA-coords">— , —</span> · גובה קרקע: <b id="antA-ground">—</b></div>
-    <div class="field">גובה תורן: <input id="antA-mast" type="number" value="10" min="0" step="1"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
+    <div class="field">גובה תורן: <input id="antA-mast" type="number" value="3" min="0" step="1"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
     <div class="awarn" id="antA-warn"></div>
   </div>
 
   <div class="card" id="cardB" style="--c:#3498db">
     <h2><span class="badge" style="background:#3498db">B</span> אנטנה B</h2>
     <div class="row"><span class="coords" id="antB-coords">— , —</span> · גובה קרקע: <b id="antB-ground">—</b></div>
-    <div class="field">גובה תורן: <input id="antB-mast" type="number" value="10" min="0" step="1"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
+    <div class="field">גובה תורן: <input id="antB-mast" type="number" value="3" min="0" step="1"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
     <div class="awarn" id="antB-warn"></div>
   </div>
 
@@ -248,6 +248,7 @@
     · מרווח ≥ <input id="exp-min-clr" type="number" placeholder="מ'">
     · כיוון: <input id="exp-dir-from" type="number" placeholder="מ°"> – <input id="exp-dir-to" type="number" placeholder="עד°">
     · גובה ≥ <input id="exp-min-h" type="number" placeholder="מ'">
+    · כביש ≤ <input id="exp-max-road" type="number" placeholder="ק"מ">
     <button id="exp-reset">איפוס</button>
   </div>
   <div class="exp-tablewrap">
@@ -258,6 +259,7 @@
         <th>אזימוט</th>
         <th data-sort="clearance">מרווח מ'</th>
         <th data-sort="height">גובה מ'</th>
+        <th data-sort="road">כביש</th>
         <th>קואורדינטות</th>
         <th></th>
       </tr></thead>

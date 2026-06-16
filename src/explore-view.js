@@ -9,17 +9,18 @@ let sortBy = 'route';
 let sortDir = 'asc';
 let handlers = {}; // { onFly(c), onPick(c) }
 
-const DEFAULT_DIR = { route: 'asc', distance: 'asc', clearance: 'desc', height: 'desc' };
+const DEFAULT_DIR = { route: 'asc', distance: 'asc', clearance: 'desc', height: 'desc', road: 'asc' };
+const FILTER_IDS = ['exp-min-km', 'exp-max-km', 'exp-min-clr', 'exp-dir-from', 'exp-dir-to', 'exp-min-h', 'exp-max-road'];
+const roadFmt = (m) => (m == null ? '—' : m < 1000 ? `${Math.round(m)} מ'` : `${(m / 1000).toFixed(1)} ק"מ`);
 
 export function initExploreView(h) {
   handlers = h || {};
   $('exp-close').addEventListener('click', closeExploreView);
   $('exp-reset').addEventListener('click', () => {
-    ['exp-min-km', 'exp-max-km', 'exp-min-clr', 'exp-dir-from', 'exp-dir-to', 'exp-min-h'].forEach((id) => { $(id).value = ''; });
+    FILTER_IDS.forEach((id) => { $(id).value = ''; });
     render();
   });
-  ['exp-min-km', 'exp-max-km', 'exp-min-clr', 'exp-dir-from', 'exp-dir-to', 'exp-min-h']
-    .forEach((id) => $(id).addEventListener('input', render));
+  FILTER_IDS.forEach((id) => $(id).addEventListener('input', render));
   document.querySelectorAll('#exp-table th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const field = th.dataset.sort;
@@ -47,6 +48,7 @@ function readFilters() {
     minKm: num('exp-min-km'), maxKm: num('exp-max-km'),
     minClearance: num('exp-min-clr'), minHeight: num('exp-min-h'),
     dirFrom: num('exp-dir-from'), dirTo: num('exp-dir-to'),
+    maxRoadKm: num('exp-max-road'),
   };
 }
 
@@ -68,6 +70,7 @@ function render() {
       `<td>${c.bearingDeg.toFixed(0)}°</td>` +
       `<td class="${c.marginM >= 0 ? 'pos' : 'neg'}">${c.marginM.toFixed(1)}</td>` +
       `<td>${h}</td>` +
+      `<td>${roadFmt(c.roadDistM)}</td>` +
       `<td class="coords">${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}<br>` +
       `<a href="https://waze.com/ul?ll=${c.lat},${c.lon}&navigate=yes" target="_blank">Waze</a> · ` +
       `<a href="https://maps.google.com/?q=${c.lat},${c.lon}" target="_blank">Maps</a></td>` +

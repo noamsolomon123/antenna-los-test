@@ -24,4 +24,4 @@ export function update(patch) {
 
 export const freqHz = () => state.frequencyMHz * 1e6;
 
-export const DEFAULT_MAST = 10;
+export const DEFAULT_MAST = 3;

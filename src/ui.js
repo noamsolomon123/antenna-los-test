@@ -97,6 +97,7 @@ async function runExploreUI() {
 }
 
 function onExploreProgress(phase, frac) {
+  if (phase === 'roads') { showExploreProgress(true, 'טוען כבישים…'); return; }
   const label = phase === 'tiles' ? 'טוען נתוני שטח' : phase === 'compute' ? 'מחשב קו ראייה' : 'מסיים';
   showExploreProgress(true, `${label}… ${Math.round(frac * 100)}%`, frac);
 }

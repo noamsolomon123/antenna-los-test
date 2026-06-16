@@ -5,6 +5,7 @@ import { distanceM, bearingDeg, metresPerDegree } from './geo.js';
 import { computeMarginGrid } from './viewshed.js';
 import { elevation } from './terrain.js';
 import { isSafe } from './safezone.js';
+import { fetchRoads, nearestRoadM } from './roads.js';
 
 const ZOOM = 11;
 const CELL_KM = 2.5;     // curation bucket size
@@ -49,6 +50,7 @@ export function buildRoute(candidates, observer, opts = {}) {
   const maxHopKm = opts.maxHopKm ?? 8;
   const hopPenalty = opts.hopPenalty ?? 2;
   const southBias = opts.southBias ?? 80; // prefer heading south (lower latitude)
+  const roadPenalty = opts.roadPenalty ?? 3; // per km to the nearest road (prefer drivable)
   candidates.forEach((c) => { c.routeOrder = Infinity; });
   const remaining = new Set(candidates);
   let cur = { lat: observer.lat, lon: observer.lon, distanceKm: 0 };
@@ -59,8 +61,9 @@ export function buildRoute(candidates, observer, opts = {}) {
       if (c.distanceKm <= cur.distanceKm) continue; // must progress outward
       const hopKm = distanceM([cur.lat, cur.lon], [c.lat, c.lon]) / 1000;
       if (hopKm > maxHopKm) continue;
-      // reward clearance + short hop + going south (lower latitude)
-      const score = c.marginM - hopPenalty * hopKm + southBias * (cur.lat - c.lat);
+      // reward clearance + short hop + going south + being near a road
+      const roadKm = c.roadDistM == null ? 2 : c.roadDistM / 1000;
+      const score = c.marginM - hopPenalty * hopKm + southBias * (cur.lat - c.lat) - roadPenalty * roadKm;
       if (score > bestScore) { bestScore = score; best = c; }
     }
     if (!best) break;
@@ -75,12 +78,14 @@ export function buildRoute(candidates, observer, opts = {}) {
 /** Pure: sort. 'route' = corridor-first (routeOrder then distance); others honor dir. */
 export function sortCandidates(cands, sortBy = 'route', dir = 'asc') {
   const sign = dir === 'desc' ? -1 : 1;
+  const roadBucket = (c) => Math.round((c.roadDistM ?? 9e9) / 250); // ~250 m buckets
   const cmp = {
-    // corridor first, then southern points first (priority to the south), then nearer
-    route: (a, b) => (a.routeOrder - b.routeOrder) || ((a.lat || 0) - (b.lat || 0)) || (a.distanceKm - b.distanceKm),
+    // corridor first, then nearer-road (drivable) + southern first
+    route: (a, b) => (a.routeOrder - b.routeOrder) || (roadBucket(a) - roadBucket(b)) || ((a.lat || 0) - (b.lat || 0)),
     distance: (a, b) => sign * (a.distanceKm - b.distanceKm),
     clearance: (a, b) => sign * (a.marginM - b.marginM),
     height: (a, b) => sign * ((a.groundElev || 0) - (b.groundElev || 0)),
+    road: (a, b) => sign * ((a.roadDistM ?? Infinity) - (b.roadDistM ?? Infinity)),
   }[sortBy] || (() => 0);
   return [...cands].sort(cmp);
 }
@@ -92,6 +97,7 @@ export function filterCandidates(cands, f = {}) {
     if (f.maxKm != null && c.distanceKm > f.maxKm) return false;
     if (f.minClearance != null && c.marginM < f.minClearance) return false;
     if (f.minHeight != null && (c.groundElev || 0) < f.minHeight) return false;
+    if (f.maxRoadKm != null && c.roadDistM != null && c.roadDistM / 1000 > f.maxRoadKm) return false;
     if (f.dirFrom != null && f.dirTo != null) {
       const b = c.bearingDeg;
       const inSector = f.dirFrom <= f.dirTo ? (b >= f.dirFrom && b <= f.dirTo) : (b >= f.dirFrom || b <= f.dirTo);
@@ -99,6 +105,14 @@ export function filterCandidates(cands, f = {}) {
     }
     return true;
   });
+}
+
+// bounding box of the candidate points, padded — keeps the road query small
+function roadsBox(candidates, padDeg = 0.02) {
+  if (!candidates.length) return null;
+  let s = Infinity, n = -Infinity, w = Infinity, e = -Infinity;
+  for (const c of candidates) { s = Math.min(s, c.lat); n = Math.max(n, c.lat); w = Math.min(w, c.lon); e = Math.max(e, c.lon); }
+  return { south: s - padDeg, north: n + padDeg, west: w - padDeg, east: e + padDeg };
 }
 
 /** Run the full explore from `observer`: margin grid -> curated candidates + route. */
@@ -109,6 +123,10 @@ export async function runExplore({ observer, rxMast, freqHz, fresnelPct, onProgr
     const g = elevation(c.lat, c.lon, ZOOM);
     c.groundElev = Number.isNaN(g) ? null : g;
   }
+  onProgress?.('roads', 0);
+  // query only the candidates' bounding box (+pad) — far smaller than the full 50 km square
+  const ways = await fetchRoads(roadsBox(candidates) || r.box);
+  for (const c of candidates) { const d = nearestRoadM(c.lat, c.lon, ways); c.roadDistM = Number.isFinite(d) ? d : null; }
   buildRoute(candidates, r.observer, {});
-  return { candidates, observer: r.observer };
+  return { candidates, observer: r.observer, hasRoads: ways.length > 0 };
 }
