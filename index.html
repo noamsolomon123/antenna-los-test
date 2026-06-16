@@ -28,6 +28,8 @@
   .field input { width:54px; background:#11151b; border:1px solid #3a3f49; color:#fff; border-radius:6px;
                  padding:3px 6px; text-align:center; font-family:inherit; }
   .muted { color:#7d828b; font-size:.78em; }
+  .awarn { color:#ff8a6b; font-size:.76em; margin-top:6px; font-weight:600; line-height:1.4; }
+  .awarn:empty { display:none; }
 
   .freq { background:#222a33; border-right-color:#4f9af0; }
   .freqrow { display:flex; align-items:center; gap:8px; margin-top:7px; }
@@ -101,12 +103,14 @@
     <h2><span class="badge" style="background:#e74c3c">A</span> אנטנה A</h2>
     <div class="row"><span class="coords" id="antA-coords">— , —</span> · גובה קרקע: <b id="antA-ground">—</b></div>
     <div class="field">גובה תורן: <input id="antA-mast" type="number" value="10" min="0" step="1"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
+    <div class="awarn" id="antA-warn"></div>
   </div>
 
   <div class="card" id="cardB" style="--c:#3498db">
     <h2><span class="badge" style="background:#3498db">B</span> אנטנה B</h2>
     <div class="row"><span class="coords" id="antB-coords">— , —</span> · גובה קרקע: <b id="antB-ground">—</b></div>
     <div class="field">גובה תורן: <input id="antB-mast" type="number" value="10" min="0" step="1"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
+    <div class="awarn" id="antB-warn"></div>
   </div>
 
   <div class="card freq">

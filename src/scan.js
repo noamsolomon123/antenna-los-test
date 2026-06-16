@@ -8,6 +8,7 @@
 import { destination, squareBox } from './geo.js';
 import { curvatureDropM, fresnelRadiusM, analyzeLink } from './los.js';
 import { ensureCovered, ensurePath, elevation } from './terrain.js';
+import { isSafe } from './safezone.js';
 
 const SCAN_ZOOM = 11;
 const CONFIRM_ZOOM = 12;
@@ -23,7 +24,7 @@ export function cancelScan() { scanToken++; }
 
 // One bearing's contribution to the candidate matrix (shared by sweep + sweepAsync).
 function accumulateBearing(cand, bi, opts, obsH, steps) {
-  const { observer, distancesKm, toleranceKm, rxMast, freqHz, fresnelPct, sampleElev } = opts;
+  const { observer, distancesKm, toleranceKm, rxMast, freqHz, fresnelPct, sampleElev, safe } = opts;
   const az = (360 * bi) / BEARINGS;
   let runningMax = -Infinity; // max required (curvature+Fresnel) angle so far
   for (let s = 1; s <= steps; s++) {
@@ -40,7 +41,8 @@ function accumulateBearing(cand, bi, opts, obsH, steps) {
         for (let di = 0; di < distancesKm.length; di++) {
           if (Math.abs(km - distancesKm[di]) <= toleranceKm) {
             const cur = cand[di][bi];
-            if (!cur || margin > cur.marginM)
+            // only keep candidates inside the safe-travel area (when a predicate is given)
+            if ((!cur || margin > cur.marginM) && (!safe || safe(p[0], p[1])))
               cand[di][bi] = { marginM: margin, lat: p[0], lon: p[1], distM: d, groundElev: terrain, az };
           }
         }
@@ -118,6 +120,7 @@ export async function runScan({ observer, distancesKm, toleranceKm, rxMast, freq
   const cand = await sweepAsync({
     observer: obs, distancesKm: dists, toleranceKm, rxMast, freqHz, fresnelPct,
     sampleElev: (la, lo) => elevation(la, lo, SCAN_ZOOM),
+    safe: isSafe, // keep only points inside safe Israel
   }, onProgress);
   if (myToken !== scanToken) throw new Error('cancelled');
 

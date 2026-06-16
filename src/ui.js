@@ -7,6 +7,7 @@ import { initMap } from './map.js';
 import { computeViewshed, clearViewshed, cancelViewshed } from './viewshed.js';
 import { renderProfile } from './profile-chart.js';
 import { runScan, cancelScan } from './scan.js';
+import { isSafe } from './safezone.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
@@ -147,10 +148,17 @@ function onMapClick(latlng) {
   else placeAntenna(mapCtl.getSelected(), latlng);
 }
 
+// warn (don't block) if a manually-placed antenna is outside safe Israel
+function warnIfUnsafe(which, lat, lon) {
+  const el = $(`ant${which}-warn`);
+  if (el) el.textContent = isSafe(lat, lon) ? '' : '⚠️ מחוץ לשטח בטוח לנסיעה (יו"ש / עזה / מדינה שכנה)';
+}
+
 function placeAntenna(which, latlng) {
   const mast = mastVal(which);
   const ant = { lat: latlng.lat, lon: latlng.lng, groundElev: NaN, mast }; // unknown until terrain resolves
   update({ ['antenna' + which]: ant });
+  warnIfUnsafe(which, ant.lat, ant.lon);
   mapCtl.setAntenna(which, [ant.lat, ant.lon], '…');
   if (which === state.observer) mapCtl.setRing([ant.lat, ant.lon]);
   // fetch ground elevation, then refine
@@ -173,6 +181,7 @@ function onMove(which, latlng, ended) {
   ant.lat = latlng.lat; ant.lon = latlng.lng;
   if (which === state.observer) mapCtl.setRing([ant.lat, ant.lon]);
   if (ended) {
+    warnIfUnsafe(which, ant.lat, ant.lon);
     if (which === state.observer) invalidateObserverDependent();
     elevationAt(ant.lat, ant.lon, PROFILE_ZOOM).then((g) => {
       if (state['antenna' + which] !== ant) return;
