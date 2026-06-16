@@ -39,6 +39,7 @@ export function initMap(elId, handlers) {
   let ring = null, link = null, distLabel = null;
   let scanMarkers = [], scanLine = null;
   let exploreGroup = null, exploreHighlight = null;
+  let foundMarker = null;
   let selected = 'A';
 
   map.on('click', (e) => handlers.onMapClick(e.latlng));
@@ -109,6 +110,18 @@ export function initMap(elId, handlers) {
 
     flyTo(latlng, zoom) { map.flyTo(latlng, zoom || 13); },
 
+    // drop a temporary "found place" pin from the search and centre on it
+    showFoundLocation(latlng, label) {
+      if (foundMarker) { map.removeLayer(foundMarker); foundMarker = null; }
+      if (!latlng) return;
+      foundMarker = L.marker(latlng, {
+        icon: L.divIcon({ className: '', html: '<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))">📍</div>', iconSize: [26, 26], iconAnchor: [13, 26] }),
+        zIndexOffset: 400,
+      }).addTo(map);
+      if (label) foundMarker.bindPopup(`<b>${label}</b><br><small>לחץ במפה כדי למקם כאן אנטנה</small>`).openPopup();
+      map.flyTo(latlng, 13);
+    },
+
     clearExplore() {
       if (exploreGroup) { map.removeLayer(exploreGroup); exploreGroup = null; }
       if (exploreHighlight) { map.removeLayer(exploreHighlight); exploreHighlight = null; }
@@ -119,17 +132,35 @@ export function initMap(elId, handlers) {
       this.clearExplore();
       exploreGroup = L.layerGroup().addTo(map);
       const route = candidates.filter((c) => Number.isFinite(c.routeOrder)).sort((a, b) => a.routeOrder - b.routeOrder);
-      if (route.length) {
-        L.polyline([[observer.lat, observer.lon], ...route.map((c) => [c.lat, c.lon])],
-          { color: '#e67e22', weight: 2.5, dashArray: '6 6', opacity: 0.9 }).addTo(exploreGroup);
-      }
+
+      // faint dots for every non-route candidate (so they don't bury the route)
       candidates.forEach((c) => {
-        const onRoute = Number.isFinite(c.routeOrder);
-        L.circleMarker([c.lat, c.lon], {
-          radius: onRoute ? 6 : 4, color: '#fff', weight: onRoute ? 2 : 1,
-          fillColor: onRoute ? '#e67e22' : '#4f9af0', fillOpacity: 0.9,
-        }).addTo(exploreGroup).on('click', () => onPick && onPick(c));
+        if (Number.isFinite(c.routeOrder)) return;
+        L.circleMarker([c.lat, c.lon], { radius: 3, weight: 0, fillColor: '#4f9af0', fillOpacity: 0.5 })
+          .addTo(exploreGroup).on('click', () => onPick && onPick(c));
       });
+
+      // the corridor route: a bold line (white casing + orange) from the observer through the route points
+      if (route.length) {
+        const pts = [[observer.lat, observer.lon], ...route.map((c) => [c.lat, c.lon])];
+        L.polyline(pts, { color: '#fff', weight: 7, opacity: 0.85, lineJoin: 'round' }).addTo(exploreGroup);
+        L.polyline(pts, { color: '#ff7f0e', weight: 4, opacity: 1, lineJoin: 'round' }).addTo(exploreGroup);
+      }
+
+      // numbered markers on the route points (on top of everything)
+      route.forEach((c, i) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:#ff7f0e;color:#fff;font-weight:800;font-size:12px;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.55)">${i + 1}</div>`,
+          iconSize: [22, 22], iconAnchor: [11, 11],
+        });
+        L.marker([c.lat, c.lon], { icon, zIndexOffset: 600 }).addTo(exploreGroup).on('click', () => onPick && onPick(c));
+      });
+
+      // zoom to the candidate area so the route is actually visible
+      const latlngs = candidates.map((c) => [c.lat, c.lon]);
+      latlngs.push([observer.lat, observer.lon]);
+      if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], animate: false });
     },
 
     highlightExplore(latlng) {

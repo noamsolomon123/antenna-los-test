@@ -10,6 +10,7 @@ import { runScan, cancelScan } from './scan.js';
 import { isSafe } from './safezone.js';
 import { runExplore } from './explore.js';
 import { initExploreView, openExploreView, closeExploreView } from './explore-view.js';
+import { searchPlaces } from './geocode.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
@@ -26,9 +27,34 @@ export function initUI() {
   $('vs-clear').addEventListener('click', () => { cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false); });
   wireScan();
   wireExplore();
+  wireSearch();
   updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
+}
+
+// ---------- place search ----------------------------------------------------
+function wireSearch() {
+  const input = $('place-search');
+  const box = $('search-results');
+  input.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    const q = input.value.trim();
+    if (q.length < 2) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="sresult msg">מחפש…</div>';
+    let results = [];
+    try { results = await searchPlaces(q); } catch (_) { /* network */ }
+    if (!results.length) { box.innerHTML = '<div class="sresult msg">לא נמצאו תוצאות</div>'; return; }
+    box.innerHTML = '';
+    results.forEach((r) => {
+      const div = document.createElement('div');
+      div.className = 'sresult';
+      div.textContent = r.name;
+      div.addEventListener('click', () => { mapCtl.showFoundLocation([r.lat, r.lon], r.name.split(',')[0]); box.innerHTML = ''; });
+      box.appendChild(div);
+    });
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.searchbox')) box.innerHTML = ''; });
 }
 
 // ---------- explore (all LOS points) ---------------------------------------

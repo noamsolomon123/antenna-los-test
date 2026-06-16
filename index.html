@@ -28,6 +28,15 @@
   .field input { width:54px; background:#11151b; border:1px solid #3a3f49; color:#fff; border-radius:6px;
                  padding:3px 6px; text-align:center; font-family:inherit; }
   .muted { color:#7d828b; font-size:.78em; }
+  .searchbox { position:relative; margin-bottom:12px; }
+  #place-search { width:100%; background:#11151b; border:1px solid #3a4250; color:#fff; border-radius:8px; padding:9px 11px; font-family:inherit; font-size:.9em; }
+  #place-search::placeholder { color:#7d828b; }
+  #search-results { position:absolute; left:0; right:0; top:100%; margin-top:4px; background:#242830; border:1px solid #3a3f49; border-radius:8px; overflow:hidden; z-index:50; box-shadow:0 6px 18px rgba(0,0,0,.5); }
+  #search-results:empty { display:none; }
+  .sresult { padding:8px 11px; font-size:.8em; color:#c5c9ce; cursor:pointer; border-bottom:1px solid #2a2f38; line-height:1.4; }
+  .sresult:last-child { border-bottom:0; }
+  .sresult:hover { background:#2d323c; color:#fff; }
+  .sresult.msg { color:#9aa0a6; cursor:default; }
   .awarn { color:#ff8a6b; font-size:.76em; margin-top:6px; font-weight:600; line-height:1.4; }
   .awarn:empty { display:none; }
 
@@ -126,6 +135,11 @@
 <div id="sidebar">
   <h1>📡 ניסוי אנטנות — קו ראייה</h1>
   <div class="subtitle">לחץ במפה כדי למקם אנטנה A ואז B · גרור לכוונון · המפה מציגה כן/לא לקו ראייה ברדיוס 50 ק"מ (קימור 4/3 + פרנל).</div>
+
+  <div class="searchbox">
+    <input id="place-search" type="text" placeholder="🔍 חיפוש מקום בישראל — הקלד ו-Enter" autocomplete="off">
+    <div id="search-results"></div>
+  </div>
 
   <div class="card" id="cardA" style="--c:#e74c3c">
     <h2><span class="badge" style="background:#e74c3c">A</span> אנטנה A</h2>
