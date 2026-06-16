@@ -64,6 +64,20 @@
   #status { font-size:.74em; color:#f1c40f; min-height:1em; margin-top:8px; }
   .footer { font-size:.7em; color:#6b7077; margin-top:12px; line-height:1.5; }
 
+  .scan { border-right-color:#e67e22; }
+  #scan-progress { display:none; margin-top:9px; }
+  #scan-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
+  #scan-results { margin-top:9px; }
+  .scard { background:#161a20; border-radius:8px; padding:8px 10px; margin-bottom:7px; border-right:4px solid #e67e22; cursor:pointer; transition:background .15s; }
+  .scard:hover { background:#1d222b; }
+  .scard.yes { border-right-color:#27d17c; } .scard.no { border-right-color:#e74c3c; }
+  .scard.none { border-right-color:#5a5f68; color:#9aa0a6; cursor:default; font-size:.82em; }
+  .scard .srow { font-size:.85em; color:#e8e6e3; display:flex; align-items:center; gap:6px; }
+  .scard .srow2 { font-size:.76em; color:#b0b5bb; margin-top:3px; }
+  .scard .yes { color:#6fd388; } .scard .no { color:#ff6b6b; }
+  .scard a { color:#8ab4f8; }
+  .snum { display:inline-block; width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; background:#e67e22; color:#fff; font-weight:800; font-size:.72em; }
+
   #map { flex:1; height:100vh; }
   .dist-label { background:rgba(255,255,255,.93); color:#1a1a1a; font-weight:700; font-size:12px;
                 padding:1px 7px; border-radius:6px; border:1px solid #555; white-space:nowrap; }
@@ -131,6 +145,17 @@
       <span><i style="background:#27d17c"></i> יש קו ראייה (כן)</span>
       <span><i style="background:#e74c3c"></i> אין (לא)</span>
     </div>
+  </div>
+
+  <div class="card scan">
+    <h2>🎯 סריקה אוטומטית — נקודות LOS</h2>
+    <div class="row">סורק מהמשקיף ומוצא נקודות קו ראייה במרחקי היעד.</div>
+    <div class="field">מרחקים (ק"מ): <input id="scan-dists" type="text" value="30, 40, 50" style="width:96px"> · ±<input id="scan-tol" type="number" value="3" min="1" style="width:44px"> ק"מ</div>
+    <div class="obsrow"><button class="obs active" id="scan-mode" style="flex:1">מסדרון — נסיעה אחת</button></div>
+    <button class="cbtn" id="scan-btn">🔍 סרוק נקודות</button>
+    <button class="linkbtn" id="scan-clear">נקה תוצאות</button>
+    <div id="scan-progress"><div id="scan-progress-label"></div><div class="bar"><div id="scan-progress-bar"></div></div></div>
+    <div id="scan-results"></div>
   </div>
 
   <div id="status"></div>

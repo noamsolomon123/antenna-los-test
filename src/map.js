@@ -28,6 +28,7 @@ export function initMap(elId, handlers) {
 
   const markers = { A: null, B: null };
   let ring = null, link = null, distLabel = null;
+  let scanMarkers = [], scanLine = null;
   let selected = 'A';
 
   map.on('click', (e) => handlers.onMapClick(e.latlng));
@@ -94,6 +95,34 @@ export function initMap(elId, handlers) {
     fitTo(a, b) {
       if (a && b) map.fitBounds(L.latLngBounds([a, b]).pad(0.4));
       else if (a) map.setView(a, 11);
+    },
+
+    flyTo(latlng, zoom) { map.flyTo(latlng, zoom || 13); },
+
+    clearScan() {
+      scanMarkers.forEach((m) => map.removeLayer(m));
+      scanMarkers = [];
+      if (scanLine) { map.removeLayer(scanLine); scanLine = null; }
+    },
+
+    // observer = {lat,lon}; points = ordered [{lat,lon,found,...}]; corridorAz optional
+    setScanResults(observer, points, corridorAz, onPick) {
+      this.clearScan();
+      const found = points.filter((p) => p.found);
+      if (corridorAz != null && found.length) {
+        scanLine = L.polyline([[observer.lat, observer.lon], ...found.map((p) => [p.lat, p.lon])],
+          { color: '#e67e22', weight: 2.5, dashArray: '6 6', opacity: 0.9 }).addTo(map);
+      }
+      found.forEach((p, i) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:#e67e22;color:#fff;font-weight:800;font-size:13px;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.5)">${i + 1}</div>`,
+          iconSize: [24, 24], iconAnchor: [12, 12],
+        });
+        const m = L.marker([p.lat, p.lon], { icon, zIndexOffset: 500 }).addTo(map);
+        m.on('click', () => onPick && onPick(p));
+        scanMarkers.push(m);
+      });
     },
   };
 }

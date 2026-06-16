@@ -6,11 +6,13 @@ import { ensureCovered, elevation, elevationAt } from './terrain.js';
 import { initMap } from './map.js';
 import { computeViewshed, clearViewshed, cancelViewshed } from './viewshed.js';
 import { renderProfile } from './profile-chart.js';
+import { runScan } from './scan.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
 let mapCtl;
 let linkTimer = null;
+let scanMode = 'corridor';
 
 export function initUI() {
   mapCtl = initMap('map', { onMapClick, onMove, onSelect: selectAntenna, onHover });
@@ -19,8 +21,100 @@ export function initUI() {
   wireObserver();
   $('vs-btn').addEventListener('click', runViewshed);
   $('vs-clear').addEventListener('click', () => { cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false); });
+  wireScan();
   selectAntenna('A');
   renderVerdict(null);
+}
+
+// ---------- automated scan -------------------------------------------------
+function wireScan() {
+  const modeBtn = $('scan-mode');
+  modeBtn.addEventListener('click', () => {
+    scanMode = scanMode === 'corridor' ? 'best' : 'corridor';
+    modeBtn.textContent = scanMode === 'corridor' ? 'מסדרון — נסיעה אחת' : 'הכי טוב בכל מרחק';
+  });
+  $('scan-btn').addEventListener('click', runScanUI);
+  $('scan-clear').addEventListener('click', () => { mapCtl.clearScan(); $('scan-results').innerHTML = ''; });
+}
+
+function parseDistances() {
+  return ($('scan-dists').value || '')
+    .split(',').map((s) => parseFloat(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0 && n <= 50)
+    .sort((a, b) => a - b);
+}
+
+async function runScanUI() {
+  const obs = state['antenna' + state.observer];
+  if (!obs) { setStatus('מקם קודם אנטנה למיקום המשקיף'); return; }
+  if (Number.isNaN(obs.groundElev)) { setStatus('אין נתוני שטח במיקום המשקיף — בחר נקודה ביבשה'); return; }
+  const dists = parseDistances();
+  if (!dists.length) { setStatus('הזן מרחקי יעד תקינים (למשל 30, 40, 50)'); return; }
+  const tol = Math.max(1, parseFloat($('scan-tol').value) || 3);
+  // receiver mast = the other antenna's mast field (editable even before it's placed)
+  const rxMast = mastVal(state.observer === 'A' ? 'B' : 'A');
+  setStatus('');
+  $('scan-btn').disabled = true;
+  showScanProgress(true, 'מתחיל…', 0);
+  try {
+    const res = await runScan({
+      observer: { ...obs }, distancesKm: dists, toleranceKm: tol, rxMast,
+      freqHz: freqHz(), fresnelPct: state.fresnelPct, mode: scanMode, onProgress: onScanProgress,
+    });
+    mapCtl.setScanResults(obs, res.points, res.corridorAz, pickScanPoint);
+    renderScanResults(res);
+  } catch (e) {
+    setStatus(e && e.message === 'observer-no-data' ? 'אין נתוני שטח במיקום המשקיף' : 'שגיאה בסריקה');
+  } finally {
+    $('scan-btn').disabled = false;
+    showScanProgress(false);
+  }
+}
+
+function renderScanResults(res) {
+  const el = $('scan-results');
+  el.innerHTML = '';
+  if (res.fellBack) el.insertAdjacentHTML('beforeend',
+    '<div class="muted" style="margin-bottom:6px">לא נמצא מסדרון אחד — מציג את הנקודות הטובות ביותר בכל כיוון.</div>');
+  let num = 0;
+  res.points.forEach((p, i) => {
+    if (!p.found) {
+      el.insertAdjacentHTML('beforeend',
+        `<div class="scard none"><b>≈${p.nominalKm} ק"מ</b> — לא נמצאה נקודת קו ראייה</div>`);
+      return;
+    }
+    num++;
+    const cls = p.clear ? 'yes' : 'no';
+    const verdict = (p.clear ? '✓ קו ראייה' : '✗ חסום') + (p.confirmed ? '' : ' (משוער)');
+    el.insertAdjacentHTML('beforeend', `
+      <div class="scard ${cls}" data-i="${i}">
+        <div class="srow"><span class="snum">${num}</span> <b>≈${p.nominalKm} ק"מ</b> · <span class="${cls}">${verdict}</span></div>
+        <div class="srow2">מרחק ${p.distanceKm.toFixed(1)} ק"מ · אזימוט ${p.bearingDeg.toFixed(0)}° · גובה ${Math.round(p.groundElev)} מ' · מרווח ${p.marginM.toFixed(1)} מ'</div>
+        <div class="srow2"><span class="coords">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span> · <a href="https://waze.com/ul?ll=${p.lat},${p.lon}&navigate=yes" target="_blank">Waze</a> · <a href="https://maps.google.com/?q=${p.lat},${p.lon}" target="_blank">Maps</a></div>
+        <button class="linkbtn setb">הצב לבדיקה מדויקת ←</button>
+      </div>`);
+  });
+  el.querySelectorAll('.scard[data-i]').forEach((card) => {
+    card.addEventListener('click', (e) => { if (e.target.tagName === 'A') return; pickScanPoint(res.points[+card.dataset.i]); });
+  });
+}
+
+function pickScanPoint(p) {
+  if (!p || !p.found) return;
+  const target = state.observer === 'A' ? 'B' : 'A';
+  placeAntenna(target, { lat: p.lat, lng: p.lon });
+  mapCtl.flyTo([p.lat, p.lon], 13);
+}
+
+function onScanProgress(phase, frac) {
+  const label = phase === 'tiles' ? 'טוען נתוני שטח' : phase === 'compute' ? 'סורק כיוונים' : phase === 'confirm' ? 'מאמת נקודות' : 'מסיים';
+  showScanProgress(true, `${label}… ${Math.round(frac * 100)}%`, frac);
+}
+
+function showScanProgress(on, text, frac) {
+  $('scan-progress').style.display = on ? 'block' : 'none';
+  if (text != null) $('scan-progress-label').textContent = text;
+  if (frac != null) $('scan-progress-bar').style.width = `${Math.round(frac * 100)}%`;
 }
 
 // ---------- map interactions ------------------------------------------------

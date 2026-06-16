@@ -94,6 +94,23 @@ export async function ensureCovered(box, zoom, onProgress) {
   await runPool(tasks, 6, onProgress);
 }
 
+/** Pre-fetch only the tiles a straight a->b path crosses (a thin strip), at a zoom. */
+export async function ensurePath(a, b, zoom, onProgress) {
+  const steps = Math.max(2, Math.ceil(Math.hypot(b.lat - a.lat, b.lon - a.lon) * 600));
+  const keys = new Set();
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const lat = a.lat + (b.lat - a.lat) * t;
+    const lon = a.lon + (b.lon - a.lon) * t;
+    keys.add(`${Math.floor(lon2tileF(lon, zoom))},${Math.floor(lat2tileF(lat, zoom))}`);
+  }
+  const tasks = [...keys].map((k) => {
+    const [x, y] = k.split(',').map(Number);
+    return () => loadTile(zoom, x, y);
+  });
+  await runPool(tasks, 6, onProgress);
+}
+
 /** Synchronous bilinear elevation (m) from already-cached tiles; NaN if missing. */
 export function elevation(lat, lon, zoom) {
   const fx = lon2tileF(lon, zoom);
