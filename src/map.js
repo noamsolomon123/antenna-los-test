@@ -1,6 +1,7 @@
 // map.js — Leaflet view controller. Owns base layers, antenna markers (draggable),
 // the 50 km ring, the A-B link line and the hover-elevation probe. Uses global `L`.
 import { elevationAt } from './terrain.js';
+import { createHeightLayer } from './heightmap.js';
 
 const HOVER_ZOOM = 12;
 
@@ -24,7 +25,15 @@ export function initMap(elId, handlers) {
   ).addTo(map);
   const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: 'OpenTopoMap (CC-BY-SA)' });
   const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: 'OpenStreetMap' });
-  L.control.layers({ '🛰️ לוויין (Esri)': sat, '🗺️ טופוגרפי': topo, 'מפה (OSM)': osm }, {}, { position: 'topleft' }).addTo(map);
+  const height = createHeightLayer();
+  L.control.layers(
+    { '🛰️ לוויין (Esri)': sat, '🗺️ טופוגרפי': topo, 'מפה (OSM)': osm },
+    { 'גובה — מפת צבע': height },
+    { position: 'topleft' }
+  ).addTo(map);
+  const heightLegend = () => document.getElementById('height-legend');
+  map.on('overlayadd', (e) => { if (e.layer === height && heightLegend()) heightLegend().style.display = 'block'; });
+  map.on('overlayremove', (e) => { if (e.layer === height && heightLegend()) heightLegend().style.display = 'none'; });
 
   const markers = { A: null, B: null };
   let ring = null, link = null, distLabel = null;

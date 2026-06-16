@@ -94,6 +94,11 @@ export async function ensureCovered(box, zoom, onProgress) {
   await runPool(tasks, 6, onProgress);
 }
 
+/** Decoded elevation tile (Float32 256x256) for z/x/y, or 'nodata'. Shares the cache. */
+export function getDecodedTile(z, x, y) {
+  return loadTile(z, x, y);
+}
+
 /** Pre-fetch only the tiles a straight a->b path crosses (a thin strip), at a zoom. */
 export async function ensurePath(a, b, zoom, onProgress) {
   const steps = Math.max(2, Math.ceil(Math.hypot(b.lat - a.lat, b.lon - a.lon) * 600));

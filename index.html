@@ -87,6 +87,7 @@
   #hover { top:12px; right:12px; font-family:Consolas,monospace; }
   #vlegend { bottom:18px; left:12px; line-height:1.8; }
   #vlegend i { display:inline-block; width:13px; height:13px; border-radius:3px; margin-left:7px; vertical-align:-2px; }
+  #height-legend { bottom:18px; right:12px; display:none; line-height:1; }
 </style>
 </head>
 <body>
@@ -168,6 +169,16 @@
   <div><i style="background:#27d17c"></i> יש קו ראייה ל-משקיף — כן</div>
   <div><i style="background:#e74c3c"></i> אין קו ראייה — לא</div>
   <div style="opacity:.7; font-size:.92em; margin-top:3px;">⟂ רדיוס 50 ק"מ</div>
+</div>
+<div class="chip" id="height-legend">
+  <div style="font-size:.72em; margin-bottom:5px; color:#cfd3d8">גובה הקרקע (מ')</div>
+  <div style="display:flex; gap:7px;">
+    <div style="width:14px; height:104px; border-radius:3px; border:1px solid rgba(0,0,0,.4);
+      background:linear-gradient(to top,#264e78,#366e96,#2e8b57,#74c365,#d6d35a,#c9a056,#9c6e40,#6e4e3c,#f5f5f5)"></div>
+    <div style="display:flex; flex-direction:column; justify-content:space-between; height:104px; font-size:.64em; color:#c5c9ce">
+      <span>1400+</span><span>1000</span><span>700</span><span>400</span><span>150</span><span>0</span><span>ים</span>
+    </div>
+  </div>
 </div>
 
 <script type="module">
