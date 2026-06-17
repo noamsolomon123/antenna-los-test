@@ -89,15 +89,21 @@ const ok = (c, m) => { assert.ok(c, m); passed++; };
 
 // --- pickDisplaySites ------------------------------------------------------
 {
-  const acc = [{ bandsClear: 3, lat: 31 }, { bandsClear: 2, lat: 31 }, { bandsClear: 1, lat: 31 }];
+  const acc = [
+    { bandsClear: 1, clearanceSum: 99, lat: 31 },
+    { bandsClear: 3, clearanceSum: 10, lat: 31 },
+    { bandsClear: 2, clearanceSum: 50, lat: 31 },
+  ];
   const r = pickDisplaySites(acc, 3);
-  ok(r.partial === false && r.display.length === 1 && r.display[0].bandsClear === 3,
-    'when sites clear all bands, show only those (partial=false)');
+  ok(r.partial === false, 'partial=false when a site clears all bands');
+  ok(r.display.length === 3, 'shows a ranked list of options, not just the best tier');
+  ok(r.display[0].bandsClear === 3, 'all-bands site ranks first');
+  ok(r.display[2].bandsClear === 1, 'weaker sites sink to the bottom');
 
-  const acc2 = [{ bandsClear: 2, lat: 31 }, { bandsClear: 2, lat: 30 }, { bandsClear: 1, lat: 31 }];
+  const acc2 = [{ bandsClear: 2, clearanceSum: 5, lat: 31 }, { bandsClear: 1, clearanceSum: 99, lat: 31 }];
   const r2 = pickDisplaySites(acc2, 3);
-  ok(r2.partial === true && r2.display.length === 2 && r2.display.every((s) => s.bandsClear === 2),
-    'fallback shows only the best partial tier (2-band), not the weaker 1-band site');
+  ok(r2.partial === true, 'partial=true when no site clears all bands');
+  ok(r2.display[0].bandsClear === 2, 'best partial tier ranks first');
 
   ok(pickDisplaySites([], 3).display.length === 0, 'empty accessible -> empty display');
 }

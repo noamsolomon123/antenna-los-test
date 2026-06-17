@@ -31,6 +31,8 @@ const DEFAULTS = {
   prominenceRadiusKm: 4,
 };
 
+const MAX_DISPLAY = 25; // cap the result list so it stays a useful shortlist
+
 // ---- pure helpers ----------------------------------------------------------
 
 /** Bounding box of safe Israel, derived from the boundary polygon (single source of truth). */
@@ -150,15 +152,14 @@ export function rankSites(sites) {
 }
 
 /**
- * Pure: choose which sites to display. Prefer sites clearing ALL bands; if none do,
- * fall back to only the best partial tier (max bandsClear achieved) — not the whole
- * pool. Returns { display, partial }.
+ * Pure: choose which sites to display — the top ranked sites (all-bands first, then
+ * the best partials), capped at MAX_DISPLAY so the user always gets a useful list of
+ * options rather than just the single best tier. `partial` = no site cleared all bands.
+ * Returns { display, partial }.
  */
 export function pickDisplaySites(accessible, bandsTotal) {
-  const full = accessible.filter((s) => s.bandsClear === bandsTotal);
-  if (full.length) return { display: full, partial: false };
-  const best = accessible.reduce((m, s) => Math.max(m, s.bandsClear), 0);
-  return { display: accessible.filter((s) => s.bandsClear === best), partial: true };
+  const partial = !accessible.some((s) => s.bandsClear === bandsTotal);
+  return { display: rankSites(accessible).slice(0, MAX_DISPLAY), partial };
 }
 
 // ---- road accessibility (async, deduped per ~0.01° box) --------------------
@@ -297,11 +298,11 @@ export async function runNationalScan(opts = {}) {
   const accessible = losQualified.filter((s) => s.roadDistM == null || s.roadDistM <= o.maxRoadM);
 
   const bandsTotal = dists.length;
-  const { display, partial } = pickDisplaySites(accessible, bandsTotal);
+  const { display, partial } = pickDisplaySites(accessible, bandsTotal); // already ranked + capped
 
   prog('done', 1);
   return {
-    sites: rankSites(display),
+    sites: display,
     scanned: candidates.length,
     confirmed: shortlist.length,
     losCount: losQualified.length,
