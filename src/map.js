@@ -18,6 +18,7 @@ function antennaIcon(label, color, tip) {
 
 export function initMap(elId, handlers) {
   const map = L.map(elId, { zoomControl: true, worldCopyJump: false }).setView([31.4, 35.0], 8);
+  window.addEventListener('resize', () => map.invalidateSize());
 
   const sat = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

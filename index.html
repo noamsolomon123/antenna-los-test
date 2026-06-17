@@ -132,9 +132,11 @@
   #vlegend i { display:inline-block; width:13px; height:13px; border-radius:3px; margin-left:7px; vertical-align:-2px; }
   #height-legend { bottom:18px; right:12px; display:none; line-height:1; }
 </style>
+<link rel="stylesheet" href="mobile.css">
 </head>
 <body>
 <div id="sidebar">
+  <button id="drawer-close" aria-label="סגור">✕</button>
   <h1>📡 ניסוי אנטנות — קו ראייה</h1>
   <div class="subtitle">לחץ במפה כדי למקם אנטנה A ואז B · גרור לכוונון · המפה מציגה כן/לא לקו ראייה ברדיוס 50 ק"מ (קימור 4/3 + פרנל).</div>
 
@@ -222,6 +224,8 @@
 </div>
 
 <div id="map"></div>
+<button id="menu-btn" aria-label="תפריט">☰</button>
+<div id="scrim"></div>
 <div class="chip" id="hover">סמן: — · גובה —</div>
 <div class="chip" id="vlegend">
   <div><i style="background:#27d17c"></i> יש קו ראייה ל-משקיף — כן</div>
@@ -275,6 +279,7 @@
 
 <script type="module">
   import { initUI } from './src/ui.js';
+  import './src/mobile.js';
   initUI();
 </script>
 </body>

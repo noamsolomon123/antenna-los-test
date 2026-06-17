@@ -3,6 +3,7 @@
 // Reuses the explore engine (margin grid -> curate -> roads -> safe).
 import { runExplore } from './explore.js';
 import { searchPlaces } from './geocode.js';
+import './mobile.js';
 
 const BANDS = [30, 40, 50];
 const TOL_KM = 3;        // a point "at 40 km" = 37–43 km
@@ -179,6 +180,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 initMap();
+window.addEventListener('resize', () => map.invalidateSize());
 wireObserverSearch();
 $('search-btn').addEventListener('click', runSearch);
 $('search-btn').disabled = true;

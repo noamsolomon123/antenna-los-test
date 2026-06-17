@@ -1,6 +1,7 @@
 // explore-view.js — the "all LOS points" table overlay: render rows, sort,
 // filter, and route row clicks back to the map / antenna placement.
 import { sortCandidates, filterCandidates } from './explore.js';
+import { closeDrawer } from './mobile.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -35,6 +36,7 @@ export function initExploreView(h) {
 export function openExploreView(cands) {
   candidates = cands || [];
   sortBy = 'route'; sortDir = 'asc';
+  closeDrawer(); // on mobile, reveal the full-screen table (not behind the drawer)
   $('explore-overlay').hidden = false;
   render();
 }
