@@ -101,6 +101,17 @@
   .nat-note { font-size:.76em; color:#e0b15a; margin-bottom:7px; line-height:1.5; }
   .scard.nat { border-right-color:#16a085; }
   .scard.nat .snum { background:#16a085; }
+  .nrow-main { cursor:pointer; }
+  .ndrop { margin-top:7px; border-top:1px solid #2a2f38; padding-top:5px; }
+  .ndrop summary { font-size:.78em; color:#7fd3bf; cursor:pointer; user-select:none; list-style:none; }
+  .ndrop summary::-webkit-details-marker { display:none; }
+  .ndrop summary::before { content:"▸ "; }
+  .ndrop[open] summary::before { content:"▾ "; }
+  .ntarget { font-size:.76em; color:#b0b5bb; background:#11151b; border-radius:6px; padding:6px 8px; margin-top:5px; cursor:pointer; line-height:1.5; }
+  .ntarget:hover { background:#1d222b; }
+  .ntarget.none { color:#6b7077; cursor:default; }
+  .ntarget b { color:#cfe0f5; }
+  .ntarget a { color:#8ab4f8; }
 
   #explore-progress { display:none; margin-top:9px; }
   #explore-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }

@@ -121,8 +121,16 @@ export function summarizeScan(scanResult, distancesKm) {
   const pts = (scanResult && scanResult.points) || [];
   const bands = distancesKm.map((km) => {
     const p = pts.find((q) => q.nominalKm === km);
-    const clear = !!(p && p.found && p.clear && p.confirmed);
-    return { km, clear, marginM: p && p.found ? p.marginM : null, distanceKm: p && p.found ? p.distanceKm : null };
+    const found = !!(p && p.found);
+    const clear = !!(found && p.clear && p.confirmed);
+    return {
+      km, found, clear,
+      marginM: found ? p.marginM : null,
+      distanceKm: found ? p.distanceKm : null,
+      bearingDeg: found ? p.bearingDeg : null,
+      lat: found ? p.lat : null,
+      lon: found ? p.lon : null,
+    };
   });
   const cleared = bands.filter((b) => b.clear);
   return {
