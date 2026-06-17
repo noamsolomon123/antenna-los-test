@@ -101,15 +101,22 @@ export function selectCorridor(cand, halfDeg = CORRIDOR_HALF_DEG, bearings = BEA
   return { picks: bestPicks, corridorAz: bestAz };
 }
 
-/** Run the full scan from `observer`, confirming each pick precisely. */
-export async function runScan({ observer, distancesKm, toleranceKm, rxMast, freqHz, fresnelPct, mode, onProgress }) {
-  const myToken = ++scanToken;
+/**
+ * Run the full scan from `observer`, confirming each pick precisely.
+ * Pass `isCancelled` to drive cancellation from an external token (e.g. the national
+ * scan): when given, runScan does NOT touch the shared module scanToken, so concurrent
+ * manual and national scans can't cancel each other.
+ */
+export async function runScan({ observer, distancesKm, toleranceKm, rxMast, freqHz, fresnelPct, mode, onProgress, isCancelled }) {
+  const external = typeof isCancelled === 'function';
+  const myToken = external ? scanToken : ++scanToken;
+  const cancelled = () => (external ? isCancelled() : myToken !== scanToken);
   const dists = [...distancesKm].sort((a, b) => a - b);
   const box = squareBox(observer.lat, observer.lon, MAX_RANGE_M * 1.03); // enclose all radial endpoints
 
   onProgress?.('tiles', 0);
   const cov = await ensureCovered(box, SCAN_ZOOM, (d, t) => onProgress?.('tiles', d / t));
-  if (myToken !== scanToken) throw new Error('cancelled');
+  if (cancelled()) throw new Error('cancelled');
   if (cov && cov.total && cov.nodata / cov.total > 0.85) throw new Error('terrain-unavailable');
 
   const g = elevation(observer.lat, observer.lon, SCAN_ZOOM);
@@ -122,7 +129,7 @@ export async function runScan({ observer, distancesKm, toleranceKm, rxMast, freq
     sampleElev: (la, lo) => elevation(la, lo, SCAN_ZOOM),
     safe: isSafe, // keep only points inside safe Israel
   }, onProgress);
-  if (myToken !== scanToken) throw new Error('cancelled');
+  if (cancelled()) throw new Error('cancelled');
 
   let picks, corridorAz = null, fellBack = false;
   if (mode === 'corridor') {

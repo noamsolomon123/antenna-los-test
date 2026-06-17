@@ -11,12 +11,16 @@ import { isSafe } from './safezone.js';
 import { runExplore } from './explore.js';
 import { initExploreView, openExploreView, closeExploreView, applyCarPreset } from './explore-view.js';
 import { searchPlaces } from './geocode.js';
+import { runNationalScan, cancelNationalScan, israelBBox } from './national.js';
+import { renderNational } from './national-view.js';
+import { closeDrawer } from './mobile.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
 let mapCtl;
 let linkTimer = null;
 let scanMode = 'corridor';
+let natScope = 'all';
 
 export function initUI() {
   mapCtl = initMap('map', { onMapClick, onMove, onSelect: selectAntenna, onHover });
@@ -27,10 +31,95 @@ export function initUI() {
   $('vs-clear').addEventListener('click', () => { cancelViewshed(); clearViewshed(mapCtl.map); $('vs-stats').textContent = ''; showProgress(false); });
   wireScan();
   wireExplore();
+  wireNational();
   wireSearch();
   updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
+}
+
+// ---------- national scan (auto-find best sites across Israel) --------------
+function wireNational() {
+  $('nat-scope-all').addEventListener('click', () => setNatScope('all'));
+  $('nat-scope-view').addEventListener('click', () => setNatScope('view'));
+  $('national-btn').addEventListener('click', runNationalUI);
+  $('national-clear').addEventListener('click', () => {
+    cancelNationalScan(); mapCtl.clearNational(); $('national-results').innerHTML = ''; showNationalProgress(false);
+  });
+}
+
+function setNatScope(s) {
+  natScope = s;
+  $('nat-scope-all').classList.toggle('active', s === 'all');
+  $('nat-scope-view').classList.toggle('active', s === 'view');
+}
+
+// intersect a {south,west,north,east} box with the safe-Israel bbox
+function clampToIsrael(box) {
+  const il = israelBBox();
+  return {
+    south: Math.max(box.south, il.south), north: Math.min(box.north, il.north),
+    west: Math.max(box.west, il.west), east: Math.min(box.east, il.east),
+  };
+}
+
+async function runNationalUI() {
+  const spacing = clampNum($('nat-spacing').value, 3, 1, 15);
+  const maxConfirm = clampNum($('nat-confirm').value, 60, 5, 200);
+  $('nat-spacing').value = spacing; $('nat-confirm').value = maxConfirm;
+  let bbox;
+  if (natScope === 'view') {
+    const b = mapCtl.map.getBounds();
+    bbox = clampToIsrael({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+    if (!(bbox.south < bbox.north && bbox.west < bbox.east)) { setStatus('התצוגה הנוכחית מחוץ לישראל — הזז את המפה'); return; }
+  }
+  setStatus('');
+  mapCtl.clearNational();
+  $('national-results').innerHTML = '';
+  $('national-btn').disabled = true;
+  showNationalProgress(true, 'מתחיל…', 0);
+  try {
+    const res = await runNationalScan({
+      bbox, gridSpacingKm: spacing, maxConfirm,
+      freqHz: freqHz(), fresnelPct: state.fresnelPct, onProgress: onNationalProgress,
+    });
+    renderNational($('national-results'), res, { onFly: natFly });
+    mapCtl.setNationalResults(res.sites, natFly);
+  } catch (e) {
+    if (e && e.message === 'cancelled') { /* superseded — quiet */ }
+    else setStatus('שגיאה בסריקה הארצית — נסה שוב');
+  } finally {
+    $('national-btn').disabled = false;
+    showNationalProgress(false);
+  }
+}
+
+function natFly(s) {
+  closeDrawer(); // on mobile, reveal the map
+  mapCtl.flyTo([s.lat, s.lon], 13);
+  mapCtl.highlightExplore([s.lat, s.lon]);
+}
+
+function onNationalProgress(phase, frac, info) {
+  const label =
+    phase === 'grid' ? 'בונה רשת נקודות'
+    : phase === 'prefilter-tiles' ? 'טוען נתוני שטח'
+    : phase === 'prefilter-score' ? 'מדרג נקודות תצפית'
+    : phase === 'confirm' ? `בודק לעומק ${info ? `${info.i}/${info.total}` : ''} · נמצאו ${info ? info.found : 0}`
+    : phase === 'roads' ? 'בודק נגישות לכבישים'
+    : 'מסיים';
+  showNationalProgress(true, frac != null && phase !== 'roads' ? `${label} · ${Math.round(frac * 100)}%` : label, frac);
+}
+
+function showNationalProgress(on, text, frac) {
+  $('national-progress').style.display = on ? 'block' : 'none';
+  if (text != null) $('national-progress-label').textContent = text;
+  if (frac != null) $('national-progress-bar').style.width = `${Math.round(frac * 100)}%`;
+}
+
+function clampNum(raw, fallback, min, max) {
+  const v = parseFloat(raw);
+  return Number.isFinite(v) ? Math.min(Math.max(v, min), max) : fallback;
 }
 
 // ---------- place search ----------------------------------------------------

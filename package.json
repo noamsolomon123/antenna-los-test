@@ -5,6 +5,6 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node tests/los.test.js && node tests/scan.test.js && node tests/safezone.test.js && node tests/explore.test.js && node tests/roads.test.js"
+    "test": "node tests/los.test.js && node tests/scan.test.js && node tests/safezone.test.js && node tests/explore.test.js && node tests/roads.test.js && node tests/national.test.js"
   }
 }

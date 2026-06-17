@@ -10,7 +10,7 @@ const SOURCES = [
 ];
 
 const TILE = 256;
-const MAX_TILES = 400;        // bound memory (~100 MB of Float32 tiles) under heavy pan/zoom
+const MAX_TILES = 700;        // bound memory (~175 MB of Float32 tiles); higher so the national scan, which loads all-Israel + many 50 km boxes, doesn't thrash the cache
 const NODATA_TTL = 60000;     // ms — retry a failed tile after this, don't pin failures forever
 const cache = new Map();      // "z/x/y" -> Float32Array(256*256)  (success only)
 const nodataUntil = new Map();// "z/x/y" -> timestamp until which it's treated as no-data
@@ -63,7 +63,7 @@ async function fetchTile(z, x, y) {
 function loadTile(z, x, y) {
   const key = `${z}/${x}/${y}`;
   const hit = cache.get(key);
-  if (hit) return Promise.resolve(hit);
+  if (hit) { cache.delete(key); cache.set(key, hit); return Promise.resolve(hit); } // LRU: refresh recency on hit
   const until = nodataUntil.get(key);
   if (until && Date.now() < until) return Promise.resolve('nodata');
   if (inflight.has(key)) return inflight.get(key);

@@ -11,10 +11,16 @@ const ENDPOINTS = [
 const DRIVABLE = '^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|road|living_street)$';
 const cache = new Map(); // box key -> ways
 
-/** Fetch drivable road ways covering a {south,west,north,east} box. Returns [[ [lat,lon], … ], … ]. */
-export async function fetchRoads(box) {
+/**
+ * Fetch drivable road ways covering a {south,west,north,east} box.
+ * Default: returns [[ [lat,lon], … ], … ].
+ * With `opts.withStatus`: returns { ok, ways } so callers can tell a genuine outage
+ * (ok:false) apart from a successful query that found no roads (ok:true, ways:[]).
+ * Only successful results are cached, so a transient failure isn't served as "empty".
+ */
+export async function fetchRoads(box, opts = {}) {
   const key = `${box.south.toFixed(2)},${box.west.toFixed(2)},${box.north.toFixed(2)},${box.east.toFixed(2)}`;
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) return opts.withStatus ? { ok: true, ways: cache.get(key) } : cache.get(key);
   const q = `[out:json][timeout:40];way["highway"~"${DRIVABLE}"](${box.south},${box.west},${box.north},${box.east});out geom;`;
   for (const ep of ENDPOINTS) {
     try {
@@ -29,10 +35,10 @@ export async function fetchRoads(box) {
         .filter((e) => Array.isArray(e.geometry) && e.geometry.length > 1)
         .map((e) => e.geometry.map((g) => [g.lat, g.lon]));
       cache.set(key, ways);
-      return ways;
+      return opts.withStatus ? { ok: true, ways } : ways;
     } catch (_) { /* try next mirror */ }
   }
-  return []; // offline / all mirrors busy — caller falls back gracefully
+  return opts.withStatus ? { ok: false, ways: [] } : []; // offline / all mirrors busy — caller falls back gracefully
 }
 
 // planar distance (m) from origin-relative point P=(0,0) to segment A-B

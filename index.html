@@ -91,6 +91,17 @@
   .scan-mode.active { background:#e67e22; border-color:#e67e22; color:#fff; }
   .scard .est { color:#9aa0a6; cursor:help; }
 
+  .national { border-right-color:#16a085; background:#192a28; }
+  .nat-scope.active { background:#16a085; border-color:#16a085; color:#fff; }
+  #national-progress { display:none; margin-top:9px; }
+  #national-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
+  #national-results { margin-top:9px; }
+  .nat-hdr { font-size:.82em; color:#c5c9ce; margin-bottom:7px; }
+  .nat-hdr b { color:#fff; }
+  .nat-note { font-size:.76em; color:#e0b15a; margin-bottom:7px; line-height:1.5; }
+  .scard.nat { border-right-color:#16a085; }
+  .scard.nat .snum { background:#16a085; }
+
   #explore-progress { display:none; margin-top:9px; }
   #explore-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
   #explore-overlay { position:fixed; top:0; left:360px; right:0; bottom:0; background:#0d0f13; z-index:1500;
@@ -143,6 +154,21 @@
   <div class="searchbox">
     <input id="place-search" type="text" placeholder="🔍 חיפוש מקום בישראל — הקלד ו-Enter" autocomplete="off">
     <div id="search-results"></div>
+  </div>
+
+  <div class="card national">
+    <h2>🔭 סריקה ארצית — אתרי אנטנה</h2>
+    <div class="row">מצא לבד את האתרים הכי טובים בישראל: נגישים לרכב, בטוחים, עם קו ראייה ל‑30/40/50 ק"מ (תורן 3 מ'). אין צורך למקם אנטנה.</div>
+    <div class="field">מרווח רשת: <input id="nat-spacing" type="number" value="3" min="1" step="1" style="width:46px"> ק"מ · בדיקה לעומק: <input id="nat-confirm" type="number" value="60" min="5" step="5" style="width:52px"> נק'</div>
+    <div class="obsrow">
+      <button class="obs nat-scope active" id="nat-scope-all">כל ישראל</button>
+      <button class="obs nat-scope" id="nat-scope-view">רק התצוגה הנוכחית</button>
+    </div>
+    <button class="cbtn" id="national-btn" style="background:linear-gradient(135deg,#0e7c66,#16a085)">🔭 סרוק את כל ישראל</button>
+    <button class="linkbtn" id="national-clear">נקה תוצאות</button>
+    <div class="muted" style="margin-top:6px">סריקת כל הארץ עשויה לקחת כמה דקות. ל"רק התצוגה הנוכחית" — הרבה יותר מהיר.</div>
+    <div id="national-progress"><div id="national-progress-label"></div><div class="bar"><div id="national-progress-bar"></div></div></div>
+    <div id="national-results"></div>
   </div>
 
   <div class="card" id="cardA" style="--c:#e74c3c">

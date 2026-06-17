@@ -40,6 +40,7 @@ export function initMap(elId, handlers) {
   let ring = null, link = null, distLabel = null;
   let scanMarkers = [], scanLine = null;
   let exploreGroup = null, exploreHighlight = null;
+  let nationalGroup = null;
   let foundMarker = null;
   let selected = 'A';
 
@@ -174,6 +175,26 @@ export function initMap(elId, handlers) {
       scanMarkers.forEach((m) => map.removeLayer(m));
       scanMarkers = [];
       if (scanLine) { map.removeLayer(scanLine); scanLine = null; }
+    },
+
+    clearNational() {
+      if (nationalGroup) { map.removeLayer(nationalGroup); nationalGroup = null; }
+    },
+
+    // sites = ranked [{lat,lon,...}]; numbered teal pins; onPick(site) on click
+    setNationalResults(sites, onPick) {
+      this.clearNational();
+      if (!sites || !sites.length) return;
+      nationalGroup = L.layerGroup().addTo(map);
+      sites.forEach((s, i) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:#16a085;color:#fff;font-weight:800;font-size:12px;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.5)">${i + 1}</div>`,
+          iconSize: [24, 24], iconAnchor: [12, 12],
+        });
+        L.marker([s.lat, s.lon], { icon, zIndexOffset: 500 }).addTo(nationalGroup).on('click', () => onPick && onPick(s));
+      });
+      map.fitBounds(L.latLngBounds(sites.map((s) => [s.lat, s.lon])), { padding: [50, 50], animate: false });
     },
 
     // observer = {lat,lon}; points = ordered [{lat,lon,found,...}]; corridorAz optional
