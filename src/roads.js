@@ -9,7 +9,13 @@ const ENDPOINTS = [
 // proper car-drivable roads (excludes faint agricultural 'track's and 'service' aisles,
 // which a normal car can't rely on and which make the Negev query time out)
 const DRIVABLE = '^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|road|living_street)$';
+const REQ_TIMEOUT_MS = 10000; // fail fast so a throttled/slow Overpass mirror can't hang the scan
 const cache = new Map(); // box key -> ways
+
+// abort a fetch after ms (so a 504/hang doesn't block ~40s); undefined if unsupported
+function timeoutSignal(ms) {
+  try { return AbortSignal.timeout(ms); } catch (_) { return undefined; }
+}
 
 /**
  * Fetch drivable road ways covering a {south,west,north,east} box.
@@ -28,6 +34,7 @@ export async function fetchRoads(box, opts = {}) {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'data=' + encodeURIComponent(q),
+        signal: timeoutSignal(REQ_TIMEOUT_MS),
       });
       if (!res.ok) continue;
       const data = await res.json();

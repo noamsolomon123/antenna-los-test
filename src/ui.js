@@ -75,7 +75,9 @@ async function runNationalUI() {
   }
   setStatus('');
   mapCtl.clearNational();
-  $('national-results').innerHTML = '';
+  const scopeNote = natScope === 'view' ? 'באזור התצוגה' : 'את כל ישראל';
+  $('national-results').innerHTML =
+    `<div class="muted">🔍 סורק ${scopeNote}… עוקב אחרי ההתקדמות למעלה. זה יכול לקחת 1–3 דקות${natScope === 'view' ? '' : ' (במיוחד שלב הכבישים האחרון)'}. השאר את הדף פתוח.</div>`;
   $('national-btn').disabled = true;
   showNationalProgress(true, 'מתחיל…', 0);
   try {
@@ -86,7 +88,10 @@ async function runNationalUI() {
     renderNational($('national-results'), res, { onFly: natFly });
     mapCtl.setNationalResults(res.sites, natFly);
   } catch (e) {
-    if (e && e.message === 'cancelled') { /* superseded — quiet */ }
+    $('national-results').innerHTML = '';
+    const msg = e && e.message;
+    if (msg === 'cancelled') { /* superseded / user cancelled — quiet */ }
+    else if (msg === 'empty-bbox') setStatus('האזור שנבחר ריק — הזז את המפה ונסה שוב');
     else setStatus('שגיאה בסריקה הארצית — נסה שוב');
   } finally {
     $('national-btn').disabled = false;
@@ -106,9 +111,9 @@ function onNationalProgress(phase, frac, info) {
     : phase === 'prefilter-tiles' ? 'טוען נתוני שטח'
     : phase === 'prefilter-score' ? 'מדרג נקודות תצפית'
     : phase === 'confirm' ? `בודק לעומק ${info ? `${info.i}/${info.total}` : ''} · נמצאו ${info ? info.found : 0}`
-    : phase === 'roads' ? 'בודק נגישות לכבישים'
+    : phase === 'roads' ? 'בודק נגישות לכבישים (שלב איטי)'
     : 'מסיים';
-  showNationalProgress(true, frac != null && phase !== 'roads' ? `${label} · ${Math.round(frac * 100)}%` : label, frac);
+  showNationalProgress(true, frac != null ? `${label} · ${Math.round(frac * 100)}%` : label, frac);
 }
 
 function showNationalProgress(on, text, frac) {
