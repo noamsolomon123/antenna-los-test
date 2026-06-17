@@ -21,6 +21,7 @@ let mapCtl;
 let linkTimer = null;
 let scanMode = 'corridor';
 let natScope = 'all';
+const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
   mapCtl = initMap('map', { onMapClick, onMove, onSelect: selectAntenna, onHover });
@@ -41,6 +42,7 @@ export function initUI() {
 // ---------- national scan (auto-find best sites across Israel) --------------
 function wireNational() {
   $('nat-scope-all').addEventListener('click', () => setNatScope('all'));
+  $('nat-scope-south').addEventListener('click', () => setNatScope('south'));
   $('nat-scope-view').addEventListener('click', () => setNatScope('view'));
   $('national-btn').addEventListener('click', runNationalUI);
   $('national-clear').addEventListener('click', () => {
@@ -51,6 +53,7 @@ function wireNational() {
 function setNatScope(s) {
   natScope = s;
   $('nat-scope-all').classList.toggle('active', s === 'all');
+  $('nat-scope-south').classList.toggle('active', s === 'south');
   $('nat-scope-view').classList.toggle('active', s === 'view');
 }
 
@@ -68,14 +71,17 @@ async function runNationalUI() {
   const maxConfirm = clampNum($('nat-confirm').value, 60, 5, 200);
   $('nat-spacing').value = spacing; $('nat-confirm').value = maxConfirm;
   let bbox;
-  if (natScope === 'view') {
+  if (natScope === 'south') {
+    const il = israelBBox();
+    bbox = { south: il.south, west: il.west, north: SOUTH_MAX_LAT, east: il.east };
+  } else if (natScope === 'view') {
     const b = mapCtl.map.getBounds();
     bbox = clampToIsrael({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
     if (!(bbox.south < bbox.north && bbox.west < bbox.east)) { setStatus('התצוגה הנוכחית מחוץ לישראל — הזז את המפה'); return; }
   }
   setStatus('');
   mapCtl.clearNational();
-  const scopeNote = natScope === 'view' ? 'באזור התצוגה' : 'את כל ישראל';
+  const scopeNote = natScope === 'south' ? 'את דרום הארץ' : natScope === 'view' ? 'באזור התצוגה' : 'את כל ישראל';
   $('national-results').innerHTML =
     `<div class="muted">🔍 סורק ${scopeNote}… עוקב אחרי ההתקדמות למעלה. זה יכול לקחת 1–3 דקות${natScope === 'view' ? '' : ' (במיוחד שלב הכבישים האחרון)'}. השאר את הדף פתוח.</div>`;
   $('national-btn').disabled = true;
