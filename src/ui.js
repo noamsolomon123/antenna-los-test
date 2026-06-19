@@ -10,7 +10,7 @@ import { runScan, cancelScan } from './scan.js';
 import { isSafe } from './safezone.js';
 import { runExplore } from './explore.js';
 import { initExploreView, openExploreView, closeExploreView, applyCarPreset } from './explore-view.js';
-import { searchPlaces } from './geocode.js';
+import { searchPlaces, reversePlace } from './geocode.js';
 import { runNationalScan, cancelNationalScan, israelBBox } from './national.js';
 import { renderNational } from './national-view.js';
 import { closeDrawer } from './mobile.js';
@@ -22,6 +22,7 @@ let linkTimer = null;
 let scanMode = 'corridor';
 let natScope = 'all';
 let nationalActive = false; // while a national scan / its results are showing, lock manual antenna placement
+let natInfoToken = 0; // invalidates stale reverse-geocode fills when a newer site is clicked
 const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
@@ -49,10 +50,11 @@ function wireNational() {
   $('national-hq-btn').addEventListener('click', () => runNationalUI(true));
   $('national-clear').addEventListener('click', () => {
     cancelNationalScan(); mapCtl.clearNational(); $('national-results').innerHTML = ''; showNationalProgress(false);
-    setNationalMode(false); setStatus('');
+    setNationalMode(false); setStatus(''); hideTargetInfo();
   });
   $('nat-tab-scan').addEventListener('click', () => setNatTab('scan'));
   $('nat-tab-saved').addEventListener('click', () => setNatTab('saved'));
+  $('nat-info-x').addEventListener('click', hideTargetInfo);
 }
 
 // switch between the live-scan controls and the saved all-Israel view (no re-scan)
@@ -67,6 +69,7 @@ function setNatTab(tab) {
   $('national-results').innerHTML = '';
   showNationalProgress(false);
   setStatus('');
+  hideTargetInfo();
   if (saved) loadSavedNational();
   else setNationalMode(false); // back to the scan tab — allow placing antennas again
 }
@@ -169,10 +172,35 @@ function natFly(s) {
     mapCtl.showNationalSite(s);
     mapCtl.highlightExplore([s.lat, s.lon]);
     selectNationalCard(s); // keep the sidebar list and the map in sync
+    showTargetInfo(s);     // small bottom-right panel: where each band target is
   } else {
     mapCtl.flyTo([s.lat, s.lon], 13);
     mapCtl.highlightExplore([s.lat, s.lon]);
   }
+}
+
+// small bottom-right panel naming where each 30/40/50 km target lands (reverse-geocoded)
+async function showTargetInfo(site) {
+  const panel = $('nat-info'), body = $('nat-info-body');
+  if (!panel || !body) return;
+  const found = (site.bands || []).filter((b) => b.found && Number.isFinite(b.lat) && Number.isFinite(b.lon));
+  if (!found.length) { hideTargetInfo(); return; }
+  panel.hidden = false;
+  body.innerHTML = found.map((b) => `<div class="nr" data-km="${b.km}">≈${b.km} ק"מ · <span class="nk">טוען…</span></div>`).join('');
+  const token = (natInfoToken += 1); // a newer click bumps this and stops stale fills
+  for (const b of found) {
+    let place = '';
+    try { place = await reversePlace(b.lat, b.lon); } catch (_) {}
+    if (token !== natInfoToken) return;
+    const el = body.querySelector(`.nr[data-km="${b.km}"] .nk`);
+    if (el) el.textContent = place || `${b.lat.toFixed(3)}, ${b.lon.toFixed(3)}`;
+  }
+}
+
+function hideTargetInfo() {
+  natInfoToken += 1; // invalidate any in-flight geocode fills
+  const p = $('nat-info');
+  if (p) p.hidden = true;
 }
 
 // highlight the result card matching a site (whether the click came from the list or a
@@ -416,6 +444,7 @@ function onMapClick(latlng) {
     // you're not stuck on one point. Manual antenna placement stays locked.
     const had = mapCtl.clearNationalFocus();
     document.querySelectorAll('#national-results .scard.nat.sel').forEach((c) => c.classList.remove('sel'));
+    hideTargetInfo();
     setStatus(had ? '' : 'מצב סריקה ארצית פעיל — מיקום אנטנה בלחיצה מושבת. לחץ "נקה תוצאות" כדי לחזור.');
     return;
   }

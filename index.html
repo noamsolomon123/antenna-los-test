@@ -170,6 +170,14 @@
   #vlegend { bottom:18px; left:12px; line-height:1.8; }
   #vlegend i { display:inline-block; width:13px; height:13px; border-radius:3px; margin-left:7px; vertical-align:-2px; }
   #height-legend { bottom:18px; right:12px; display:none; line-height:1; }
+  #nat-info { bottom:18px; right:12px; width:178px; direction:rtl; line-height:1.5; }
+  #nat-info[hidden] { display:none; }
+  .nat-info-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
+  .nat-info-head b { color:#7fd3bf; font-size:.95em; }
+  #nat-info-x { background:none; border:0; color:#9aa0a6; font-size:1em; cursor:pointer; line-height:1; padding:0 2px; }
+  #nat-info-x:hover { color:#fff; }
+  #nat-info-body .nr { font-size:.95em; margin-top:2px; }
+  #nat-info-body .nk { color:#cfe0f5; font-weight:700; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -306,6 +314,10 @@
       <span>2000</span><span>1400</span><span>1000</span><span>700</span><span>400</span><span>150</span><span>0</span><span>‎-50</span><span>‎-430</span>
     </div>
   </div>
+</div>
+<div class="chip" id="nat-info" hidden>
+  <div class="nat-info-head"><b>מיקומי היעד</b><button id="nat-info-x" aria-label="סגור">✕</button></div>
+  <div id="nat-info-body"></div>
 </div>
 
 <div id="explore-overlay" hidden>
