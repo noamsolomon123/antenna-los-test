@@ -19,10 +19,13 @@ const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
 let mapCtl;
 let linkTimer = null;
+let linkToken = 0; // newest A↔B recompute wins; an older awaited one must not overwrite it
 let scanMode = 'corridor';
 let natScope = 'all';
 let nationalActive = false; // while a national scan / its results are showing, lock manual antenna placement
+let nationalRunning = false; // a scan is in flight — ignore re-entry (e.g. clicking the other scan button)
 let natInfoToken = 0; // invalidates stale reverse-geocode fills when a newer site is clicked
+let savedFileCache = null; // parsed data/national-israel.json, memoized so tab switches don't refetch
 const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
@@ -82,10 +85,11 @@ async function loadSavedNational() {
   // that ships with the app so there's always something to show on first visit.
   let res = null, src = '';
   try { const local = localStorage.getItem('nat-israel-saved'); if (local) { res = JSON.parse(local); src = 'שלך'; } } catch (_) {}
+  if (!res && savedFileCache) { res = savedFileCache; src = 'ברירת מחדל'; }
   if (!res) {
     try {
-      const r = await fetch('data/national-israel.json', { cache: 'no-store' });
-      if (r.ok) { res = await r.json(); src = 'ברירת מחדל'; }
+      const r = await fetch('data/national-israel.json'); // static shipped asset — let the browser cache it
+      if (r.ok) { res = await r.json(); savedFileCache = res; src = 'ברירת מחדל'; }
     } catch (_) {}
   }
   if (!res || !Array.isArray(res.sites)) {
@@ -115,6 +119,7 @@ function clampToIsrael(box) {
 }
 
 async function runNationalUI(hq = false) {
+  if (nationalRunning) return; // a scan is already in flight — don't start a second one
   // High-quality mode: denser grid + a much deeper confirm shortlist. Slower but
   // far more thorough — the user explicitly opted into an "even an hour" scan.
   if (hq) { $('nat-spacing').value = 1.5; $('nat-confirm').value = 800; }
@@ -138,7 +143,8 @@ async function runNationalUI(hq = false) {
   const timeNote = slow ? 'זה יכול לקחת 10–40 דקות (בדיקה איכותית ויסודית)' : 'זה יכול לקחת 1–3 דקות';
   $('national-results').innerHTML =
     `<div class="muted">🔍 סורק ${scopeNote}${hq ? ' באיכות גבוהה' : ''}… עוקב אחרי ההתקדמות למעלה. ${timeNote}. השאר את הדף פתוח.</div>`;
-  $('national-btn').disabled = true;
+  nationalRunning = true;
+  $('national-btn').disabled = true; $('national-hq-btn').disabled = true;
   showNationalProgress(true, 'מתחיל…', 0);
   try {
     const res = await runNationalScan({
@@ -158,7 +164,8 @@ async function runNationalUI(hq = false) {
     else if (msg === 'empty-bbox') setStatus('האזור שנבחר ריק — הזז את המפה ונסה שוב');
     else setStatus('שגיאה בסריקה הארצית — נסה שוב');
   } finally {
-    $('national-btn').disabled = false;
+    nationalRunning = false;
+    $('national-btn').disabled = false; $('national-hq-btn').disabled = false;
     showNationalProgress(false);
   }
 }
@@ -188,7 +195,10 @@ async function showTargetInfo(site) {
   panel.hidden = false;
   body.innerHTML = found.map((b) => `<div class="nr" data-km="${b.km}">≈${b.km} ק"מ · <span class="nk">טוען…</span></div>`).join('');
   const token = (natInfoToken += 1); // a newer click bumps this and stops stale fills
-  for (const b of found) {
+  for (let i = 0; i < found.length; i++) {
+    const b = found[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, 350)); // ~respect Nominatim's rate policy
+    if (token !== natInfoToken) return;
     let place = '';
     try { place = await reversePlace(b.lat, b.lon); } catch (_) {}
     if (token !== natInfoToken) return;
@@ -519,9 +529,11 @@ function recomputeLink(ensure) {
 async function doRecompute(ensure) {
   const a = state.antennaA, b = state.antennaB;
   if (!a || !b) { renderVerdict(null); $('profile').innerHTML = ''; mapCtl.drawLink(null, null); return; }
+  const my = ++linkToken; // guards the async path below against an older recompute finishing late
   if (ensure) {
     setStatus('טוען נתוני שטח…');
     await ensureCovered(pathBox(a, b), PROFILE_ZOOM);
+    if (my !== linkToken || state.antennaA !== a || state.antennaB !== b) return; // superseded by a newer move
     setStatus('');
     a.groundElev = elevation(a.lat, a.lon, PROFILE_ZOOM);
     b.groundElev = elevation(b.lat, b.lon, PROFILE_ZOOM);
@@ -557,7 +569,9 @@ function pathBox(a, b) {
 // ---------- rendering -------------------------------------------------------
 function renderVerdict(r) {
   const big = $('v-result');
-  const setNeutral = (msg) => { big.textContent = msg; big.className = 'big neutral'; $('v-clearance').textContent = ''; };
+  const card = document.querySelector('.verdict');
+  const setCardState = (s) => { if (card) { card.classList.toggle('is-yes', s === 'yes'); card.classList.toggle('is-no', s === 'no'); } };
+  const setNeutral = (msg) => { big.textContent = msg; big.className = 'big neutral'; $('v-clearance').textContent = ''; setCardState(null); };
   if (!r) {
     $('v-dist').textContent = '—'; $('v-az').textContent = '—';
     setNeutral('מקם אנטנה A ו-B במפה');
@@ -571,6 +585,7 @@ function renderVerdict(r) {
   if (r.dataFraction < 0.8) { setNeutral(`נתונים חלקיים (${Math.round(r.dataFraction * 100)}%) — לא ניתן לקבוע`); return; }
   big.textContent = r.clear ? '✓ יש קו ראייה — כן' : '✗ אין קו ראייה — לא';
   big.className = 'big ' + (r.clear ? 'yes' : 'no');
+  setCardState(r.clear ? 'yes' : 'no');
   $('v-clearance').innerHTML =
     `מרווח פרנל מינימלי: <b>${r.minMargin.toFixed(1)} מ'</b> · נקודה קובעת בק"מ ${r.minAtKm.toFixed(1)}`;
 }

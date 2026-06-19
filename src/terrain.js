@@ -147,13 +147,22 @@ export async function ensurePath(a, b, zoom, onProgress) {
   await runPool(tasks, 6, onProgress);
 }
 
+// memoize the last-resolved tile: scan/sweep samples are spatially coherent (same tile
+// for long runs), so this skips a per-sample string build + Map.get in the hottest loop.
+let _lz = -1, _ltx = -1, _lty = -1, _ltile = null;
+
 /** Synchronous bilinear elevation (m) from already-cached tiles; NaN if missing. */
 export function elevation(lat, lon, zoom) {
   const fx = lon2tileF(lon, zoom);
   const fy = lat2tileF(lat, zoom);
   const tx = Math.floor(fx);
   const ty = Math.floor(fy);
-  const tile = cache.get(`${zoom}/${tx}/${ty}`);
+  let tile;
+  if (zoom === _lz && tx === _ltx && ty === _lty) tile = _ltile;
+  else {
+    tile = cache.get(`${zoom}/${tx}/${ty}`);
+    if (tile !== undefined) { _lz = zoom; _ltx = tx; _lty = ty; _ltile = tile; } // don't memoize a not-yet-loaded tile
+  }
   if (!tile || tile === 'nodata') return NaN;
   // pixel coords within the tile
   const px = (fx - tx) * TILE;

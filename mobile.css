@@ -51,4 +51,14 @@
 
   /* a bit more breathing room for tap targets */
   .cbtn, .obs, .preset, #exp-close, .pres-nav button { min-height: 38px; }
+
+  /* 16px inputs so Mobile Safari doesn't violently auto-zoom on focus */
+  #sidebar input, .exp-filters input, #place-search { font-size: 16px; }
+  .field input, .freqrow input { width: 58px; }
+
+  /* notch / home-indicator safe areas (viewport-fit=cover) */
+  #menu-btn { top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
+  #sidebar { padding-top: calc(14px + env(safe-area-inset-top)); padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  #vlegend, #height-legend, #nat-info { bottom: calc(18px + env(safe-area-inset-bottom)); }
+  body.height-on #nat-info { bottom: calc(158px + env(safe-area-inset-bottom)); }
 }

@@ -29,7 +29,11 @@ export function renderNational(el, result, handlers = {}) {
   }
 
   sites.forEach((s, i) => {
-    const bandsTxt = s.bands.map((b) => `${b.km}${b.clear ? '✓' : b.found ? '~' : '✗'}`).join(' · ');
+    const bandChips = s.bands.map((b) => {
+      const cls = b.clear ? 'ok' : b.found ? 'est' : 'no';
+      const mark = b.clear ? '✓' : b.found ? '~' : '✗';
+      return `<span class="band-chip ${cls}">${b.km} ${mark}</span>`;
+    }).join('');
     const foundBands = s.bands.filter((b) => b.found);
     // one Google Maps link that drops the observer + all its 30/40/50 km targets on a
     // single map, so the whole fan can be seen together (and navigated through).
@@ -51,7 +55,8 @@ export function renderNational(el, result, handlers = {}) {
     card.innerHTML =
       `<div class="nrow-main">` +
         `<div class="srow"><span class="snum">${i + 1}</span> <b>${s.bandsClear}/${bandsTotal} טווחים</b> · עד ${Math.round(s.maxReachKm)} ק"מ</div>` +
-        `<div class="srow2">טווחים: ${bandsTxt} · מרווח כולל ${Math.round(s.clearanceSum)} מ' · גובה ${s.groundElev == null ? '—' : Math.round(s.groundElev)} מ'</div>` +
+        `<div class="bandchips">${bandChips}</div>` +
+        `<div class="srow2">מרווח כולל ${Math.round(s.clearanceSum)} מ' · גובה ${s.groundElev == null ? '—' : Math.round(s.groundElev)} מ'</div>` +
         `<div class="srow2">כביש: <b>${roadFmt(s.roadDistM)}</b>${roadSrc(s)} · <span class="coords">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</span> (משקיף)</div>` +
         `<div class="srow2">משקיף: <a href="https://waze.com/ul?ll=${s.lat},${s.lon}&navigate=yes" target="_blank">Waze</a> · ` +
         `<a href="https://maps.google.com/?q=${s.lat},${s.lon}" target="_blank">Maps</a></div>` +

@@ -36,6 +36,6 @@ export async function reversePlace(lat, lon) {
         || a.neighbourhood || a.city_district || a.county || a.region || a.state || d.name || '';
     }
   } catch (_) { /* offline / throttled -> caller falls back to coords */ }
-  revCache.set(key, label);
+  if (label) revCache.set(key, label); // never cache an empty result: a transient throttle must not poison the point
   return label;
 }

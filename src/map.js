@@ -8,9 +8,9 @@ const HOVER_ZOOM = 12;
 function antennaIcon(label, color, tip) {
   return L.divIcon({
     className: '',
-    html: `<div style="text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))">
-      <div style="background:${color};color:#fff;font-weight:800;font-size:13px;padding:2px 9px;border-radius:999px;white-space:nowrap">${label} 📡</div>
-      <div style="background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:1px 5px;border-radius:5px;margin-top:2px;white-space:nowrap">${tip}</div></div>`,
+    html: `<div style="text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));pointer-events:none">
+      <div style="background:${color};color:#fff;font-weight:800;font-size:13px;padding:2px 9px;border-radius:999px;white-space:nowrap;pointer-events:auto">${label} 📡</div>
+      <div style="background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:1px 5px;border-radius:5px;margin-top:2px;white-space:nowrap;pointer-events:auto">${tip}</div></div>`,
     iconSize: [60, 42],
     iconAnchor: [30, 42],
   });
@@ -33,8 +33,8 @@ export function initMap(elId, handlers) {
     { position: 'topleft' }
   ).addTo(map);
   const heightLegend = () => document.getElementById('height-legend');
-  map.on('overlayadd', (e) => { if (e.layer === height && heightLegend()) heightLegend().style.display = 'block'; });
-  map.on('overlayremove', (e) => { if (e.layer === height && heightLegend()) heightLegend().style.display = 'none'; });
+  map.on('overlayadd', (e) => { if (e.layer === height) { document.body.classList.add('height-on'); if (heightLegend()) heightLegend().style.display = 'block'; } });
+  map.on('overlayremove', (e) => { if (e.layer === height) { document.body.classList.remove('height-on'); if (heightLegend()) heightLegend().style.display = 'none'; } });
 
   const markers = { A: null, B: null };
   let ring = null, link = null, distLabel = null;
@@ -49,14 +49,16 @@ export function initMap(elId, handlers) {
 
   // debounced hover-elevation probe
   let hoverTimer = null;
+  const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches; // touch device
   map.on('mousemove', (e) => {
+    if (noHover) return; // don't fire elevation tile fetches on touch-drag (the readout is hidden anyway)
     clearTimeout(hoverTimer);
     const { lat, lng } = e.latlng;
     hoverTimer = setTimeout(async () => {
       let elev = NaN;
       try { elev = await elevationAt(lat, lng, HOVER_ZOOM); } catch (_) {}
       handlers.onHover({ lat, lng }, elev);
-    }, 140);
+    }, 200);
   });
 
   function makeMarker(which, latlng) {
@@ -103,7 +105,7 @@ export function initMap(elId, handlers) {
         return;
       }
       if (ring) ring.setLatLng(latlng); // reuse — no flicker/GC churn during drag
-      else ring = L.circle(latlng, { radius: 50000, color: '#fff', weight: 2, dashArray: '9 7', fill: false, opacity: 0.85 }).addTo(map);
+      else ring = L.circle(latlng, { radius: 50000, color: '#cfe3ff', weight: 2, dashArray: '9 7', fill: true, fillColor: '#4f9af0', fillOpacity: 0.05, opacity: 0.9 }).addTo(map);
     },
 
     fitTo(a, b) {
@@ -119,7 +121,7 @@ export function initMap(elId, handlers) {
       if (!latlng) return;
       foundMarker = L.marker(latlng, {
         icon: L.divIcon({ className: '', html: '<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))">📍</div>', iconSize: [26, 26], iconAnchor: [13, 26] }),
-        zIndexOffset: 400,
+        zIndexOffset: 400, interactive: false, // don't let the search pin intercept the click-to-place
       }).addTo(map);
       if (label) foundMarker.bindPopup(`<b>${label}</b><br><small>לחץ במפה כדי למקם כאן אנטנה</small>`).openPopup();
       map.flyTo(latlng, 13);
