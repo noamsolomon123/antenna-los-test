@@ -210,6 +210,9 @@
   .verdict.is-no  { border-right-color:var(--bad); }
   /* coordinates / numeric runs must not bidi-scramble inside RTL Hebrew */
   .coords, #exp-table .coords { unicode-bidi:isolate; }
+  /* explore-table: cells right-aligned under their right-aligned headers, numbers isolated */
+  #exp-table tbody td { text-align:right; }
+  #exp-table tbody td.coords { unicode-bidi:isolate; }
   /* National-Scan result cards: colored band chips instead of a gray dot-blob */
   .bandchips { display:flex; gap:5px; margin:5px 0 3px; flex-wrap:wrap; }
   .band-chip { font-size:.72em; font-weight:700; padding:2px 8px; border-radius:999px; border:1px solid transparent; }
@@ -235,6 +238,24 @@
   /* use the actually-visible viewport height on mobile (toolbars don't clip the map/overlay) */
   @supports (height:100dvh) { body, #sidebar, #map, #explore-overlay { height:100dvh; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+  /* on-map feedback: toast (transient), first-run coachmark, national-mode banner */
+  #coach { top:14px; left:50%; right:auto; transform:translateX(-50%); z-index:1050; font-size:.86em; color:#fff;
+           font-weight:600; padding:8px 14px; animation:coachpulse 2s ease-in-out infinite; }
+  #coach[hidden] { display:none; }
+  @keyframes coachpulse { 0%,100% { box-shadow:0 4px 16px rgba(0,0,0,.45); } 50% { box-shadow:0 4px 22px rgba(79,154,240,.5); } }
+  #nat-banner { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:1100;
+                display:flex; align-items:center; gap:10px; background:rgba(22,160,133,.94); color:#fff;
+                padding:7px 8px 7px 14px; border-radius:999px; box-shadow:0 4px 18px rgba(0,0,0,.45);
+                font-size:.8em; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); max-width:92vw; }
+  #nat-banner[hidden] { display:none; }
+  #nat-banner button { background:rgba(0,0,0,.28); border:0; color:#fff; border-radius:999px; padding:4px 11px;
+                       cursor:pointer; font-family:inherit; font-size:.95em; white-space:nowrap; }
+  #nat-banner button:hover { background:rgba(0,0,0,.42); }
+  #toast { left:50%; right:auto; bottom:26px; top:auto; transform:translateX(-50%); z-index:1600;
+           max-width:84vw; text-align:center; font-size:.84em; color:#fff; line-height:1.4;
+           background:rgba(20,22,27,.94); border-color:rgba(255,255,255,.12); }
+  #toast[hidden] { display:none; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -257,7 +278,7 @@
     </div>
     <div id="nat-scan-panel">
       <div class="row">מצא לבד את האתרים הכי טובים בישראל: נגישים לרכב, בטוחים, עם קו ראייה ל‑30/40/50 ק"מ (תורן 3 מ'). אין צורך למקם אנטנה.</div>
-      <div class="field">מרווח רשת: <input id="nat-spacing" type="number" value="3" min="0.5" max="15" step="0.5" style="width:48px"> ק"מ · בדיקה לעומק: <input id="nat-confirm" type="number" value="60" min="5" max="2000" step="10" style="width:58px"> נק'</div>
+      <div class="field">מרווח רשת: <input id="nat-spacing" type="number" value="3" min="0.5" max="15" step="0.5" style="width:48px" aria-label="מרווח רשת הסריקה (ק&quot;מ)"> ק"מ · בדיקה לעומק: <input id="nat-confirm" type="number" value="60" min="5" max="2000" step="10" style="width:58px" aria-label="מספר אתרים לבדיקה לעומק"> נק'</div>
       <div class="obsrow">
         <button class="obs nat-scope active" id="nat-scope-all">כל ישראל</button>
         <button class="obs nat-scope" id="nat-scope-south">דרום</button>
@@ -278,20 +299,20 @@
   <div class="card" id="cardA" style="--c:#e74c3c">
     <h2><span class="badge" style="background:#e74c3c">A</span> אנטנה A</h2>
     <div class="row"><span class="coords" id="antA-coords">— , —</span> · גובה קרקע: <b id="antA-ground">—</b></div>
-    <div class="field">גובה תורן: <input id="antA-mast" type="number" value="3" min="0" step="1"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
+    <div class="field">גובה תורן: <input id="antA-mast" type="number" value="3" min="0" step="1" aria-label="גובה תורן אנטנה A (מטרים)"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
     <div class="awarn" id="antA-warn"></div>
   </div>
 
   <div class="card" id="cardB" style="--c:#3498db">
     <h2><span class="badge" style="background:#3498db">B</span> אנטנה B</h2>
     <div class="row"><span class="coords" id="antB-coords">— , —</span> · גובה קרקע: <b id="antB-ground">—</b></div>
-    <div class="field">גובה תורן: <input id="antB-mast" type="number" value="3" min="0" step="1"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
+    <div class="field">גובה תורן: <input id="antB-mast" type="number" value="3" min="0" step="1" aria-label="גובה תורן אנטנה B (מטרים)"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
     <div class="awarn" id="antB-warn"></div>
   </div>
 
   <div class="card freq">
     <h2>📻 תדר עבודה</h2>
-    <div class="freqrow"><input id="freq-input" type="number" value="5800" min="1" step="50">
+    <div class="freqrow"><input id="freq-input" type="number" value="5800" min="1" step="50" aria-label="תדר עבודה (MHz)">
       <span class="muted">MHz ≈ <b id="freq-ghz" style="color:#cfe0f5">5.8 GHz</b></span></div>
     <div class="presets">
       <button class="preset" data-mhz="2400">2.4 GHz</button>
@@ -333,7 +354,7 @@
   <div class="card scan">
     <h2>🎯 סריקה אוטומטית — נקודות LOS</h2>
     <div class="row" id="scan-observer-note">סורק מאנטנה <b>A</b> · מוצא נקודות קו ראייה במרחקי היעד.</div>
-    <div class="field">מרחקים (ק"מ): <input id="scan-dists" type="text" value="30, 40, 50" style="width:96px"> · ±<input id="scan-tol" type="number" value="3" min="1" style="width:44px"> ק"מ</div>
+    <div class="field">מרחקים (ק"מ): <input id="scan-dists" type="text" value="30, 40, 50" style="width:96px" aria-label="מרחקי יעד לסריקה (ק&quot;מ, מופרדים בפסיק)"> · ±<input id="scan-tol" type="number" value="3" min="1" style="width:44px" aria-label="סבילות מרחק (ק&quot;מ)"> ק"מ</div>
     <div class="obsrow">
       <button class="obs scan-mode active" id="scan-mode-corridor">מסדרון — נסיעה אחת</button>
       <button class="obs scan-mode" id="scan-mode-best">הכי טוב בכל מרחק</button>
@@ -376,6 +397,12 @@
   <div class="nat-info-head"><b>מיקומי היעד</b><button id="nat-info-x" aria-label="סגור">✕</button></div>
   <div id="nat-info-body"></div>
 </div>
+<div class="chip" id="coach" hidden></div>
+<div id="nat-banner" hidden>
+  <span id="nat-banner-text">מצב סריקה ארצית — לחיצה על המפה משחררת מיקוד</span>
+  <button id="nat-banner-x">✕ צא למצב מיקום אנטנות</button>
+</div>
+<div class="chip" id="toast" role="status" aria-live="polite" hidden></div>
 
 <div id="explore-overlay" hidden>
   <div class="exp-head">

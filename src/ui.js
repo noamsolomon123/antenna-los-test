@@ -26,6 +26,7 @@ let nationalActive = false; // while a national scan / its results are showing, 
 let nationalRunning = false; // a scan is in flight — ignore re-entry (e.g. clicking the other scan button)
 let natInfoToken = 0; // invalidates stale reverse-geocode fills when a newer site is clicked
 let savedFileCache = null; // parsed data/national-israel.json, memoized so tab switches don't refetch
+let toastTimer = null;
 const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
@@ -42,6 +43,20 @@ export function initUI() {
   updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
+  // first visit: open straight to the saved all-Israel results (instant "wow"); returning
+  // users keep the scan tab. The national-mode banner makes the locked map obvious + exitable.
+  let firstVisit = false;
+  try { firstVisit = !localStorage.getItem('nat-seen'); localStorage.setItem('nat-seen', '1'); } catch (_) {}
+  if (firstVisit) setNatTab('saved');
+  updateCoach();
+  syncAria();
+}
+
+// mirror the color-only "active" state of every toggle group into aria-pressed so
+// screen-reader / color-blind users know which option is selected
+function syncAria() {
+  document.querySelectorAll('.obs, .preset, .nat-tab').forEach((b) =>
+    b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
 }
 
 // ---------- national scan (auto-find best sites across Israel) --------------
@@ -58,6 +73,7 @@ function wireNational() {
   $('nat-tab-scan').addEventListener('click', () => setNatTab('scan'));
   $('nat-tab-saved').addEventListener('click', () => setNatTab('saved'));
   $('nat-info-x').addEventListener('click', hideTargetInfo);
+  $('nat-banner-x').addEventListener('click', () => setNatTab('scan')); // exit national mode -> placement
 }
 
 // switch between the live-scan controls and the saved all-Israel view (no re-scan)
@@ -65,6 +81,7 @@ function setNatTab(tab) {
   const saved = tab === 'saved';
   $('nat-tab-scan').classList.toggle('active', !saved);
   $('nat-tab-saved').classList.toggle('active', saved);
+  syncAria();
   $('nat-scan-panel').hidden = saved;
   $('nat-saved-panel').hidden = !saved;
   cancelNationalScan();
@@ -107,6 +124,7 @@ function setNatScope(s) {
   $('nat-scope-all').classList.toggle('active', s === 'all');
   $('nat-scope-south').classList.toggle('active', s === 'south');
   $('nat-scope-view').classList.toggle('active', s === 'view');
+  syncAria();
 }
 
 // intersect a {south,west,north,east} box with the safe-Israel bbox
@@ -230,6 +248,9 @@ function selectNationalCard(s) {
 function setNationalMode(on) {
   nationalActive = on;
   document.body.classList.toggle('nat-mode', on);
+  const banner = $('nat-banner');
+  if (banner) banner.hidden = !on; // persistent "you're in national mode — exit here" banner
+  updateCoach();
 }
 
 function onNationalProgress(phase, frac, info) {
@@ -345,6 +366,7 @@ function setScanMode(m) {
   scanMode = m;
   $('scan-mode-corridor').classList.toggle('active', m === 'corridor');
   $('scan-mode-best').classList.toggle('active', m === 'best');
+  syncAria();
 }
 
 function updateObserverNote() {
@@ -487,6 +509,7 @@ function placeAntenna(which, latlng) {
   if (which === state.observer) invalidateObserverDependent();
   if (which === 'A' && !state.antennaB) selectAntenna('B');
   updateCards();
+  updateCoach(); // advance the "place A → place B → done" hint
   recomputeLink(true);
 }
 
@@ -632,6 +655,7 @@ function wireFrequency() {
     update({ frequencyMHz: mhz });
     $('freq-ghz').textContent = fmtFreq(mhz);
     document.querySelectorAll('.preset').forEach((b) => b.classList.toggle('active', +b.dataset.mhz === mhz));
+    syncAria();
     recomputeLink(true);
   };
   input.addEventListener('input', apply);
@@ -645,6 +669,7 @@ function wireObserver() {
       update({ observer: w });
       $('obs-A').classList.toggle('active', w === 'A');
       $('obs-B').classList.toggle('active', w === 'B');
+      syncAria();
       const ant = state['antenna' + w];
       if (ant) mapCtl.setRing([ant.lat, ant.lon]);
       // move the "משקיף" badge to the chosen observer
@@ -696,6 +721,30 @@ function showProgress(on, text, frac) {
   if (frac != null) $('vs-progress-bar').style.width = `${Math.round(frac * 100)}%`;
 }
 
-function setStatus(t) { $('status').textContent = t || ''; }
+function setStatus(t) {
+  $('status').textContent = t || '';
+  // surface real feedback as an on-map toast too (the sidebar #status is off-screen on
+  // mobile and below the fold on desktop). Skip routine loading messages (they end with …).
+  if (t && !t.endsWith('…')) showToast(t);
+}
+
+function showToast(msg) {
+  const el = $('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 4200);
+}
+
+// first-run map coachmark guiding the click-to-place flow (hidden in national mode)
+function updateCoach() {
+  const c = $('coach');
+  if (!c) return;
+  if (nationalActive) { c.hidden = true; return; }
+  if (!state.antennaA) { c.textContent = '👆 לחץ במפה כדי למקם אנטנה A'; c.hidden = false; }
+  else if (!state.antennaB) { c.textContent = '👆 לחץ במפה כדי למקם אנטנה B'; c.hidden = false; }
+  else c.hidden = true;
+}
 
 function fmtFreq(mhz) { return mhz >= 1000 ? `${(mhz / 1000).toFixed(2).replace(/\.?0+$/, '')} GHz` : `${mhz} MHz`; }
