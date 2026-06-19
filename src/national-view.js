@@ -1,6 +1,8 @@
 // national-view.js — render the ranked national-scan sites as a list in the
 // sidebar (header + one card per site). Row click -> handlers.onFly(site).
 const roadFmt = (m) => (m == null ? '—' : m < 1000 ? `${Math.round(m)} מ'` : `${(m / 1000).toFixed(1)} ק"מ`);
+// note the data source: OSRM (a fallback when Overpass failed) includes dirt tracks
+const roadSrc = (s) => (s.roadSource === 'osrm' ? ' <span class="rsrc" title="מרחק מ-OSRM (גיבוי) — עשוי לכלול דרך עפר">·OSRM</span>' : '');
 
 export function renderNational(el, result, handlers = {}) {
   el.innerHTML = '';
@@ -10,6 +12,9 @@ export function renderNational(el, result, handlers = {}) {
   hdr.className = 'nat-hdr';
   hdr.innerHTML = `נמצאו <b>${sites.length}</b> אתרים · נסרקו ${scanned} נקודות, נבדקו לעומק ${confirmed}, אומתו ${losCount}`;
   el.appendChild(hdr);
+
+  if (sites.length)
+    el.insertAdjacentHTML('beforeend', '<div class="nat-hint">💡 לחץ על אתר כדי לראות את כל נקודות היעד שלו על המפה · מיקום אנטנות ידני מושבת בזמן סריקה ארצית.</div>');
 
   if (partial && sites.length)
     el.insertAdjacentHTML('beforeend', `<div class="nat-note">לא נמצאו אתרים שעוברים את כל ${bandsTotal} הטווחים — מציג את הטובים ביותר (חלק מהטווחים).</div>`);
@@ -26,6 +31,10 @@ export function renderNational(el, result, handlers = {}) {
   sites.forEach((s, i) => {
     const bandsTxt = s.bands.map((b) => `${b.km}${b.clear ? '✓' : b.found ? '~' : '✗'}`).join(' · ');
     const foundBands = s.bands.filter((b) => b.found);
+    // one Google Maps link that drops the observer + all its 30/40/50 km targets on a
+    // single map, so the whole fan can be seen together (and navigated through).
+    const allPts = [[s.lat, s.lon], ...foundBands.map((b) => [b.lat, b.lon])];
+    const gmapsAll = 'https://www.google.com/maps/dir/' + allPts.map(([la, lo]) => `${la.toFixed(5)},${lo.toFixed(5)}`).join('/');
     const card = document.createElement('div');
     card.className = 'scard nat';
 
@@ -43,9 +52,10 @@ export function renderNational(el, result, handlers = {}) {
       `<div class="nrow-main">` +
         `<div class="srow"><span class="snum">${i + 1}</span> <b>${s.bandsClear}/${bandsTotal} טווחים</b> · עד ${Math.round(s.maxReachKm)} ק"מ</div>` +
         `<div class="srow2">טווחים: ${bandsTxt} · מרווח כולל ${Math.round(s.clearanceSum)} מ' · גובה ${s.groundElev == null ? '—' : Math.round(s.groundElev)} מ'</div>` +
-        `<div class="srow2">כביש: <b>${roadFmt(s.roadDistM)}</b> · <span class="coords">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</span> (משקיף)</div>` +
-        `<div class="srow2"><a href="https://waze.com/ul?ll=${s.lat},${s.lon}&navigate=yes" target="_blank">Waze</a> · ` +
+        `<div class="srow2">כביש: <b>${roadFmt(s.roadDistM)}</b>${roadSrc(s)} · <span class="coords">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</span> (משקיף)</div>` +
+        `<div class="srow2">משקיף: <a href="https://waze.com/ul?ll=${s.lat},${s.lon}&navigate=yes" target="_blank">Waze</a> · ` +
         `<a href="https://maps.google.com/?q=${s.lat},${s.lon}" target="_blank">Maps</a></div>` +
+        `<div class="srow2"><a class="gall" href="${gmapsAll}" target="_blank" title="פותח את המשקיף וכל נקודות היעד יחד במפה אחת">🗺️ כל ${allPts.length} הנקודות יחד ב‑Google Maps</a></div>` +
       `</div>` +
       `<details class="ndrop"><summary>📍 נקודות היעד שנמצאו (${foundBands.length})</summary>${targetRows}</details>`;
 

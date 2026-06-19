@@ -21,6 +21,7 @@ let mapCtl;
 let linkTimer = null;
 let scanMode = 'corridor';
 let natScope = 'all';
+let nationalActive = false; // while a national scan / its results are showing, lock manual antenna placement
 const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
@@ -44,10 +45,54 @@ function wireNational() {
   $('nat-scope-all').addEventListener('click', () => setNatScope('all'));
   $('nat-scope-south').addEventListener('click', () => setNatScope('south'));
   $('nat-scope-view').addEventListener('click', () => setNatScope('view'));
-  $('national-btn').addEventListener('click', runNationalUI);
+  $('national-btn').addEventListener('click', () => runNationalUI(false));
+  $('national-hq-btn').addEventListener('click', () => runNationalUI(true));
   $('national-clear').addEventListener('click', () => {
     cancelNationalScan(); mapCtl.clearNational(); $('national-results').innerHTML = ''; showNationalProgress(false);
+    setNationalMode(false); setStatus('');
   });
+  $('nat-tab-scan').addEventListener('click', () => setNatTab('scan'));
+  $('nat-tab-saved').addEventListener('click', () => setNatTab('saved'));
+}
+
+// switch between the live-scan controls and the saved all-Israel view (no re-scan)
+function setNatTab(tab) {
+  const saved = tab === 'saved';
+  $('nat-tab-scan').classList.toggle('active', !saved);
+  $('nat-tab-saved').classList.toggle('active', saved);
+  $('nat-scan-panel').hidden = saved;
+  $('nat-saved-panel').hidden = !saved;
+  cancelNationalScan();
+  mapCtl.clearNational();
+  $('national-results').innerHTML = '';
+  showNationalProgress(false);
+  setStatus('');
+  if (saved) loadSavedNational();
+  else setNationalMode(false); // back to the scan tab — allow placing antennas again
+}
+
+// load the pre-computed all-Israel scan that ships with the app and render it instantly
+async function loadSavedNational() {
+  setNationalMode(true); // it's national results -> lock placement + enable click-away
+  $('national-results').innerHTML = '<div class="muted">טוען תוצאות שמורות…</div>';
+  // prefer the user's own saved all-Israel run (localStorage); fall back to the one
+  // that ships with the app so there's always something to show on first visit.
+  let res = null, src = '';
+  try { const local = localStorage.getItem('nat-israel-saved'); if (local) { res = JSON.parse(local); src = 'שלך'; } } catch (_) {}
+  if (!res) {
+    try {
+      const r = await fetch('data/national-israel.json', { cache: 'no-store' });
+      if (r.ok) { res = await r.json(); src = 'ברירת מחדל'; }
+    } catch (_) {}
+  }
+  if (!res || !Array.isArray(res.sites)) {
+    $('national-results').innerHTML = '<div class="muted">עדיין אין תוצאות שמורות. עבור ל"סריקה חדשה", בחר "כל ישראל" והרץ — הן יישמרו לפעם הבאה.</div>';
+    return;
+  }
+  renderNational($('national-results'), res, { onFly: natFly });
+  mapCtl.setNationalResults(res.sites, natFly);
+  const meta = $('nat-saved-meta');
+  if (meta) meta.textContent = (res.generatedAt ? ` · עודכן: ${String(res.generatedAt).slice(0, 10)}` : '') + ` (${src})`;
 }
 
 function setNatScope(s) {
@@ -66,9 +111,12 @@ function clampToIsrael(box) {
   };
 }
 
-async function runNationalUI() {
-  const spacing = clampNum($('nat-spacing').value, 3, 1, 15);
-  const maxConfirm = clampNum($('nat-confirm').value, 60, 5, 200);
+async function runNationalUI(hq = false) {
+  // High-quality mode: denser grid + a much deeper confirm shortlist. Slower but
+  // far more thorough — the user explicitly opted into an "even an hour" scan.
+  if (hq) { $('nat-spacing').value = 1.5; $('nat-confirm').value = 800; }
+  const spacing = clampNum($('nat-spacing').value, 3, 0.5, 15);
+  const maxConfirm = clampNum($('nat-confirm').value, 60, 5, 2000);
   $('nat-spacing').value = spacing; $('nat-confirm').value = maxConfirm;
   let bbox;
   if (natScope === 'south') {
@@ -81,9 +129,12 @@ async function runNationalUI() {
   }
   setStatus('');
   mapCtl.clearNational();
+  setNationalMode(true); // entering national-scan mode — manual antenna placement is locked
   const scopeNote = natScope === 'south' ? 'את דרום הארץ' : natScope === 'view' ? 'באזור התצוגה' : 'את כל ישראל';
+  const slow = hq || maxConfirm > 150;
+  const timeNote = slow ? 'זה יכול לקחת 10–40 דקות (בדיקה איכותית ויסודית)' : 'זה יכול לקחת 1–3 דקות';
   $('national-results').innerHTML =
-    `<div class="muted">🔍 סורק ${scopeNote}… עוקב אחרי ההתקדמות למעלה. זה יכול לקחת 1–3 דקות${natScope === 'view' ? '' : ' (במיוחד שלב הכבישים האחרון)'}. השאר את הדף פתוח.</div>`;
+    `<div class="muted">🔍 סורק ${scopeNote}${hq ? ' באיכות גבוהה' : ''}… עוקב אחרי ההתקדמות למעלה. ${timeNote}. השאר את הדף פתוח.</div>`;
   $('national-btn').disabled = true;
   showNationalProgress(true, 'מתחיל…', 0);
   try {
@@ -93,6 +144,10 @@ async function runNationalUI() {
     });
     renderNational($('national-results'), res, { onFly: natFly });
     mapCtl.setNationalResults(res.sites, natFly);
+    // remember a full all-Israel run so the "saved" tab can show it instantly next time
+    if (natScope === 'all') {
+      try { res.generatedAt = new Date().toISOString(); localStorage.setItem('nat-israel-saved', JSON.stringify(res)); } catch (_) {}
+    }
   } catch (e) {
     $('national-results').innerHTML = '';
     const msg = e && e.message;
@@ -107,8 +162,36 @@ async function runNationalUI() {
 
 function natFly(s) {
   closeDrawer(); // on mobile, reveal the map
-  mapCtl.flyTo([s.lat, s.lon], 13);
-  mapCtl.highlightExplore([s.lat, s.lon]);
+  // A full result site (has its band targets) -> draw the observer + every 30/40/50 km
+  // point it found, with connecting lines, and fit the view so the layout is visible.
+  // A bare {lat,lon} (a single target row) -> just fly to and highlight that point.
+  if (s && Array.isArray(s.bands)) {
+    mapCtl.showNationalSite(s);
+    mapCtl.highlightExplore([s.lat, s.lon]);
+    selectNationalCard(s); // keep the sidebar list and the map in sync
+  } else {
+    mapCtl.flyTo([s.lat, s.lon], 13);
+    mapCtl.highlightExplore([s.lat, s.lon]);
+  }
+}
+
+// highlight the result card matching a site (whether the click came from the list or a
+// map pin) and bring it into view — ties the two together so it feels like one thing
+function selectNationalCard(s) {
+  const el = $('national-results');
+  el.querySelectorAll('.scard.nat.sel').forEach((c) => c.classList.remove('sel'));
+  const tag = `${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}`;
+  const card = [...el.querySelectorAll('.scard.nat')].find((c) => {
+    const co = c.querySelector('.nrow-main .coords');
+    return co && co.textContent.trim() === tag;
+  });
+  if (card) { card.classList.add('sel'); card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+
+// national-scan mode: lock manual antenna placement so map clicks don't drop pins
+function setNationalMode(on) {
+  nationalActive = on;
+  document.body.classList.toggle('nat-mode', on);
 }
 
 function onNationalProgress(phase, frac, info) {
@@ -328,6 +411,14 @@ function showScanProgress(on, text, frac) {
 
 // ---------- map interactions ------------------------------------------------
 function onMapClick(latlng) {
+  if (nationalActive) {
+    // a click on empty map "lets go" of the focused site (clears its target fan), so
+    // you're not stuck on one point. Manual antenna placement stays locked.
+    const had = mapCtl.clearNationalFocus();
+    document.querySelectorAll('#national-results .scard.nat.sel').forEach((c) => c.classList.remove('sel'));
+    setStatus(had ? '' : 'מצב סריקה ארצית פעיל — מיקום אנטנה בלחיצה מושבת. לחץ "נקה תוצאות" כדי לחזור.');
+    return;
+  }
   if (!state.antennaA) placeAntenna('A', latlng);
   else if (!state.antennaB) placeAntenna('B', latlng);
   else placeAntenna(mapCtl.getSelected(), latlng);

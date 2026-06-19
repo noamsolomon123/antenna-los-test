@@ -63,8 +63,12 @@
   #obs-B.active { background:#3498db; border-color:#3498db; }
   .cbtn { width:100%; padding:9px; border:0; border-radius:9px; cursor:pointer; font-family:inherit; font-size:.85em;
           background:linear-gradient(135deg,#2e7dd1,#4f9af0); color:#fff; font-weight:700; }
+  .cbtn { transition:filter .15s, transform .06s, box-shadow .15s; }
+  .cbtn:hover:not(:disabled) { filter:brightness(1.08); box-shadow:0 3px 10px rgba(0,0,0,.35); }
+  .cbtn:active:not(:disabled) { transform:translateY(1px); }
   .cbtn:disabled { opacity:.55; cursor:default; }
-  .linkbtn { background:none; border:0; color:#8ab4f8; font-size:.76em; cursor:pointer; margin-top:6px; font-family:inherit; }
+  .linkbtn { background:none; border:0; color:#8ab4f8; font-size:.76em; cursor:pointer; margin-top:6px; font-family:inherit; transition:color .12s; }
+  .linkbtn:hover { color:#aecbfb; text-decoration:underline; }
   #vs-progress { display:none; margin-top:9px; }
   #vs-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
   .bar { height:7px; background:#11151b; border-radius:99px; overflow:hidden; }
@@ -92,11 +96,17 @@
   .scard .est { color:#9aa0a6; cursor:help; }
 
   .national { border-right-color:#16a085; background:#192a28; }
+  .nat-tabs { display:flex; gap:6px; margin:9px 0 4px; }
+  .nat-tab { flex:1; background:#11201e; border:1px solid #2a4a44; color:#bfe3da; border-radius:7px;
+             padding:7px 0; font-size:.78em; cursor:pointer; font-family:inherit; transition:background .12s, color .12s; }
+  .nat-tab:hover { background:#163029; }
+  .nat-tab.active { background:#16a085; border-color:#16a085; color:#fff; font-weight:700; }
   .nat-scope.active { background:#16a085; border-color:#16a085; color:#fff; }
   #national-progress { display:none; margin-top:9px; }
   #national-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
   #national-results { margin-top:9px; }
   .nat-hdr { font-size:.82em; color:#c5c9ce; margin-bottom:7px; }
+  .rsrc { color:#9aa0a6; font-size:.82em; cursor:help; }
   .nat-hdr b { color:#fff; }
   .nat-note { font-size:.76em; color:#e0b15a; margin-bottom:7px; line-height:1.5; }
   .scard.nat { border-right-color:#16a085; }
@@ -112,6 +122,13 @@
   .ntarget.none { color:#6b7077; cursor:default; }
   .ntarget b { color:#cfe0f5; }
   .ntarget a { color:#8ab4f8; }
+  .nat-hint { font-size:.74em; color:#86a39b; margin:-2px 0 8px; line-height:1.5; }
+  .scard.nat { transition:background .15s, border-color .15s, box-shadow .18s, transform .1s; animation:natfade .2s ease both; }
+  .scard.nat:hover { background:#1c302d; transform:translateX(-2px); }
+  .scard.nat.sel { border-right-color:#2ecc71; box-shadow:0 0 0 1px rgba(46,204,113,.55) inset, 0 4px 14px rgba(0,0,0,.4); background:#1d332f; }
+  @keyframes natfade { from { opacity:0; } to { opacity:1; } }
+  .gall { display:inline-block; margin-top:3px; font-weight:600; color:#7fd3bf !important; }
+  .gall:hover { text-decoration:underline; }
 
   #explore-progress { display:none; margin-top:9px; }
   #explore-progress-label { font-size:.74em; color:#9aa0a6; margin-bottom:3px; }
@@ -169,16 +186,26 @@
 
   <div class="card national">
     <h2>🔭 סריקה ארצית — אתרי אנטנה</h2>
-    <div class="row">מצא לבד את האתרים הכי טובים בישראל: נגישים לרכב, בטוחים, עם קו ראייה ל‑30/40/50 ק"מ (תורן 3 מ'). אין צורך למקם אנטנה.</div>
-    <div class="field">מרווח רשת: <input id="nat-spacing" type="number" value="3" min="1" step="1" style="width:46px"> ק"מ · בדיקה לעומק: <input id="nat-confirm" type="number" value="60" min="5" step="5" style="width:52px"> נק'</div>
-    <div class="obsrow">
-      <button class="obs nat-scope active" id="nat-scope-all">כל ישראל</button>
-      <button class="obs nat-scope" id="nat-scope-south">דרום</button>
-      <button class="obs nat-scope" id="nat-scope-view">תצוגה</button>
+    <div class="nat-tabs">
+      <button class="nat-tab active" id="nat-tab-scan">🔭 סריקה חדשה</button>
+      <button class="nat-tab" id="nat-tab-saved">⭐ כל ישראל — שמור</button>
     </div>
-    <button class="cbtn" id="national-btn" style="background:linear-gradient(135deg,#0e7c66,#16a085)">🔭 סרוק את כל ישראל</button>
-    <button class="linkbtn" id="national-clear">נקה תוצאות</button>
-    <div class="muted" style="margin-top:6px">סריקת כל הארץ עשויה לקחת כמה דקות. ל"רק התצוגה הנוכחית" — הרבה יותר מהיר.</div>
+    <div id="nat-scan-panel">
+      <div class="row">מצא לבד את האתרים הכי טובים בישראל: נגישים לרכב, בטוחים, עם קו ראייה ל‑30/40/50 ק"מ (תורן 3 מ'). אין צורך למקם אנטנה.</div>
+      <div class="field">מרווח רשת: <input id="nat-spacing" type="number" value="3" min="0.5" max="15" step="0.5" style="width:48px"> ק"מ · בדיקה לעומק: <input id="nat-confirm" type="number" value="60" min="5" max="2000" step="10" style="width:58px"> נק'</div>
+      <div class="obsrow">
+        <button class="obs nat-scope active" id="nat-scope-all">כל ישראל</button>
+        <button class="obs nat-scope" id="nat-scope-south">דרום</button>
+        <button class="obs nat-scope" id="nat-scope-view">תצוגה</button>
+      </div>
+      <button class="cbtn" id="national-btn" style="background:linear-gradient(135deg,#0e7c66,#16a085)">🔭 סרוק (מהיר)</button>
+      <button class="cbtn" id="national-hq-btn" style="background:linear-gradient(135deg,#b9770e,#e0a008)">🏆 איכות גבוהה — סריקה יסודית (איטי)</button>
+      <button class="linkbtn" id="national-clear">נקה תוצאות</button>
+      <div class="muted" style="margin-top:6px">"איכות גבוהה" סורקת את כל הארץ ברשת צפופה ובודקת מאות אתרים לעומק — עשויה לקחת 10–40 דקות. לחיצה על אתר בתוצאות תצייר על המפה את נקודות ה‑30/40/50 ק"מ שנמצאו ממנו.</div>
+    </div>
+    <div id="nat-saved-panel" hidden>
+      <div class="muted" style="margin-top:6px">⭐ תוצאות סריקת כל-ישראל מלאה ששמורה מראש — נטענות מיד, בלי להריץ סריקה. לחץ על אתר כדי לראות את נקודות ה‑30/40/50 ק"מ שלו על המפה. לחיצה על המפה משחררת את המיקוד.<span id="nat-saved-meta"></span></div>
+    </div>
     <div id="national-progress"><div id="national-progress-label"></div><div class="bar"><div id="national-progress-bar"></div></div></div>
     <div id="national-results"></div>
   </div>

@@ -28,6 +28,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         ".html": "text/html",
     }
 
+    # never cache: this is a live dev server and we edit the ES modules frequently,
+    # so a stale cached module must never be served (otherwise edits silently don't apply)
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
+
 
 socketserver.TCPServer.allow_reuse_address = True
 with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:

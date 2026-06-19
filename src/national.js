@@ -13,10 +13,12 @@ import { ensureCovered, buildGrid } from './terrain.js';
 import { isSafe, SAFE_RINGS } from './safezone.js';
 import { runScan } from './scan.js';
 import { fetchRoads, nearestRoadM } from './roads.js';
+import { nearestRoadOSRM } from './roads-osrm.js';
 
 const PREFILTER_ZOOM = 11;     // ~65 m terrain for the cheap national prominence grid
 const PREFILTER_CELL_M = 500;  // target sampling resolution of the prominence grid
 const ROAD_CONCURRENCY = 3;    // gentle on Overpass
+const OSRM_CONCURRENCY = 4;    // gentle on the public OSRM demo server (fallback only)
 
 const DEFAULTS = {
   gridSpacingKm: 3,
@@ -31,7 +33,7 @@ const DEFAULTS = {
   prominenceRadiusKm: 4,
 };
 
-const MAX_DISPLAY = 25; // cap the result list so it stays a useful shortlist
+const MAX_DISPLAY = 50; // cap the result list so it stays a useful shortlist
 
 // ---- pure helpers ----------------------------------------------------------
 
@@ -170,33 +172,56 @@ async function attachRoadDistances(sites, maxRoadM, onProgress, alive) {
   const keyOf = (b) => `${b.south.toFixed(2)},${b.west.toFixed(2)},${b.north.toFixed(2)},${b.east.toFixed(2)}`;
   const groups = new Map();
   for (const s of sites) {
+    s.roadDistM = null; s.roadSource = null;
     const box = squareBox(s.lat, s.lon, half);
     const k = keyOf(box);
     if (!groups.has(k)) groups.set(k, { box, members: [] });
     groups.get(k).members.push(s);
   }
+
+  // Stage A — Overpass per deduped box (paved roads only, efficient). A failed box
+  // leaves its members unresolved (roadDistM stays null) for the OSRM fallback below.
   const entries = [...groups.values()];
-  let anyFailed = false, done = 0, idx = 0;
-  async function worker() {
+  let done = 0, idx = 0;
+  async function overpassWorker() {
     while (idx < entries.length) {
       const my = idx++;
       if (!alive()) return;
       const { box, members } = entries[my];
       const { ok, ways } = await fetchRoads(box, { withStatus: true });
-      if (!ok) {
-        anyFailed = true;
-        for (const s of members) s.roadDistM = null; // query failed -> unknown; keep + warn
-      } else {
+      if (ok) {
         for (const s of members) {
           const d = nearestRoadM(s.lat, s.lon, ways);
-          s.roadDistM = Number.isFinite(d) ? d : Infinity; // queried, no road near -> far (inaccessible)
+          s.roadDistM = Number.isFinite(d) ? d : Infinity; // queried, no paved road near -> far
+          s.roadSource = 'osm';
         }
       }
-      onProgress?.(++done / entries.length);
+      onProgress?.(0.7 * (++done / entries.length));
     }
   }
-  await Promise.all(Array.from({ length: Math.min(ROAD_CONCURRENCY, entries.length) }, worker));
-  return !anyFailed; // hasRoads = no Overpass outage occurred
+  await Promise.all(Array.from({ length: Math.min(ROAD_CONCURRENCY, entries.length) }, overpassWorker));
+  if (!alive()) return false;
+
+  // Stage B — OSRM per-point fallback for whatever Overpass couldn't resolve, so an
+  // Overpass outage no longer leaves far-from-road "desert hole" sites in the list as
+  // unknown-but-kept: OSRM gives a real distance and the >maxRoadM filter drops them.
+  const pending = sites.filter((s) => s.roadDistM == null);
+  if (pending.length) {
+    let j = 0, d2 = 0;
+    async function osrmWorker() {
+      while (j < pending.length) {
+        const s = pending[j++];
+        if (!alive()) return;
+        const r = await nearestRoadOSRM(s.lat, s.lon);
+        if (r.ok) { s.roadDistM = r.distM; s.roadSource = 'osrm'; } // else: stays null -> keep + warn
+        onProgress?.(0.7 + 0.3 * (++d2 / pending.length));
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(OSRM_CONCURRENCY, pending.length) }, osrmWorker));
+  }
+  onProgress?.(1);
+  // hasRoads = road access was determined (by either source) for every site
+  return sites.every((s) => s.roadDistM != null);
 }
 
 // ---- orchestrator ----------------------------------------------------------
@@ -220,7 +245,9 @@ export async function runNationalScan(opts = {}) {
   const o = { ...DEFAULTS, ...opts };
   // clamp so a direct API call can't trigger a UI-freezing runaway (the UI also clamps)
   o.gridSpacingKm = Math.min(Math.max(Number(o.gridSpacingKm) || DEFAULTS.gridSpacingKm, 0.5), 20);
-  o.maxConfirm = Math.min(Math.max((o.maxConfirm | 0) || DEFAULTS.maxConfirm, 1), 300);
+  // ceiling raised to 2000 so a "high quality" all-Israel run can confirm a deep
+  // shortlist (it just takes longer — the user opted into a slow, thorough scan).
+  o.maxConfirm = Math.min(Math.max((o.maxConfirm | 0) || DEFAULTS.maxConfirm, 1), 2000);
   const bbox = o.bbox || israelBBox();
   if (!(bbox.south < bbox.north && bbox.west < bbox.east)) throw new Error('empty-bbox');
   const dists = [...o.distancesKm].sort((a, b) => a - b);

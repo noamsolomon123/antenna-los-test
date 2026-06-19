@@ -41,6 +41,7 @@ export function initMap(elId, handlers) {
   let scanMarkers = [], scanLine = null;
   let exploreGroup = null, exploreHighlight = null;
   let nationalGroup = null;
+  let nationalSiteGroup = null;
   let foundMarker = null;
   let selected = 'A';
 
@@ -179,6 +180,20 @@ export function initMap(elId, handlers) {
 
     clearNational() {
       if (nationalGroup) { map.removeLayer(nationalGroup); nationalGroup = null; }
+      this.clearNationalSite();
+    },
+
+    clearNationalSite() {
+      if (nationalSiteGroup) { map.removeLayer(nationalSiteGroup); nationalSiteGroup = null; }
+    },
+
+    // drop the currently-focused site (its target fan + the highlight ring) so a click
+    // away from a point "lets go" of it. Returns whether anything was focused.
+    clearNationalFocus() {
+      const had = !!(nationalSiteGroup || exploreHighlight);
+      this.clearNationalSite();
+      if (exploreHighlight) { map.removeLayer(exploreHighlight); exploreHighlight = null; }
+      return had;
     },
 
     // sites = ranked [{lat,lon,...}]; numbered teal pins; onPick(site) on click
@@ -195,6 +210,49 @@ export function initMap(elId, handlers) {
         L.marker([s.lat, s.lon], { icon, zIndexOffset: 500 }).addTo(nationalGroup).on('click', () => onPick && onPick(s));
       });
       map.fitBounds(L.latLngBounds(sites.map((s) => [s.lat, s.lon])), { padding: [50, 50], animate: false });
+    },
+
+    // Focus one result site: draw its observer + every 30/40/50 km target point the
+    // scan found, with a line observer->target for each, so the user sees the spatial
+    // layout (not just coordinates). Fits the view to the whole fan.
+    showNationalSite(site) {
+      this.clearNationalSite();
+      if (!site) return;
+      nationalSiteGroup = L.layerGroup().addTo(map);
+      const o = [site.lat, site.lon];
+      const found = (Array.isArray(site.bands) ? site.bands : [])
+        .filter((b) => b.found && Number.isFinite(b.lat) && Number.isFinite(b.lon));
+
+      // line observer -> each target (white casing + colour by clear/estimated)
+      found.forEach((b) => {
+        const col = b.clear ? '#2ecc71' : '#f39c12';
+        L.polyline([o, [b.lat, b.lon]], { color: '#fff', weight: 5, opacity: 0.8 }).addTo(nationalSiteGroup);
+        L.polyline([o, [b.lat, b.lon]], { color: col, weight: 3, opacity: 0.95, dashArray: b.clear ? null : '6 5' }).addTo(nationalSiteGroup);
+      });
+
+      // distance-labelled target markers
+      found.forEach((b) => {
+        const col = b.clear ? '#2ecc71' : '#f39c12';
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:${col};color:#0b3d2e;font-weight:800;font-size:11px;padding:2px 7px;border-radius:999px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);white-space:nowrap">${b.km} ק"מ</div>`,
+          iconSize: [46, 20], iconAnchor: [23, 10],
+        });
+        L.marker([b.lat, b.lon], { icon, zIndexOffset: 700 }).addTo(nationalSiteGroup)
+          .bindPopup(`<b>יעד ≈${b.km} ק"מ</b><br>${b.distanceKm.toFixed(1)} ק"מ · אזימוט ${Math.round(b.bearingDeg)}°<br>${b.lat.toFixed(4)}, ${b.lon.toFixed(4)} · ${b.clear ? '✓ קו ראייה' : '~ משוער'}`);
+      });
+
+      // observer marker on top
+      const oIcon = L.divIcon({
+        className: '',
+        html: '<div style="background:#0e7c66;color:#fff;font-weight:800;font-size:12px;padding:3px 9px;border-radius:6px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.55);white-space:nowrap">📡 משקיף</div>',
+        iconSize: [74, 24], iconAnchor: [37, 24],
+      });
+      L.marker(o, { icon: oIcon, zIndexOffset: 800 }).addTo(nationalSiteGroup);
+
+      const pts = [o, ...found.map((b) => [b.lat, b.lon])];
+      if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], animate: true });
+      else map.setView(o, 12);
     },
 
     // observer = {lat,lon}; points = ordered [{lat,lon,found,...}]; corridorAz optional

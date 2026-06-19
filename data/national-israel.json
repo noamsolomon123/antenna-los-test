@@ -1,0 +1,2117 @@
+{
+  "generatedAt": "2026-06-19T15:52:41.527Z",
+  "scanned": 9823,
+  "confirmed": 300,
+  "losCount": 178,
+  "accessibleCount": 146,
+  "hasRoads": true,
+  "partial": false,
+  "bandsTotal": 3,
+  "distancesKm": [
+    30,
+    40,
+    50
+  ],
+  "sites": [
+    {
+      "lat": 32.76449,
+      "lon": 35.66023,
+      "groundElev": 291,
+      "roadDistM": 78,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 97,
+      "maxReachKm": 48.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.94875,
+          "lon": 35.41605,
+          "distanceKm": 30.7,
+          "bearingDeg": 312,
+          "marginM": 30
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.92965,
+          "lon": 35.25518,
+          "distanceKm": 42.1,
+          "bearingDeg": 296,
+          "marginM": 40
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.18827,
+          "lon": 35.55259,
+          "distanceKm": 48.2,
+          "bearingDeg": 348,
+          "marginM": 27
+        }
+      ]
+    },
+    {
+      "lat": 32.95389,
+      "lon": 35.42256,
+      "groundElev": 868,
+      "roadDistM": 330,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 70,
+      "maxReachKm": 47.8,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.7691,
+          "lon": 35.68408,
+          "distanceKm": 31.9,
+          "bearingDeg": 130,
+          "marginM": 25
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.62494,
+          "lon": 35.35369,
+          "distanceKm": 37.1,
+          "bearingDeg": 190,
+          "marginM": 19
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.52442,
+          "lon": 35.39586,
+          "distanceKm": 47.8,
+          "bearingDeg": 183,
+          "marginM": 26
+        }
+      ]
+    },
+    {
+      "lat": 32.95389,
+      "lon": 35.37443,
+      "groundElev": 1002,
+      "roadDistM": 39,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 68,
+      "maxReachKm": 49.7,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69039,
+          "lon": 35.39084,
+          "distanceKm": 29.3,
+          "bearingDeg": 177,
+          "marginM": 17
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.7585,
+          "lon": 35.03079,
+          "distanceKm": 38.8,
+          "bearingDeg": 236,
+          "marginM": 21
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.5088,
+          "lon": 35.4206,
+          "distanceKm": 49.7,
+          "bearingDeg": 175,
+          "marginM": 29
+        }
+      ]
+    },
+    {
+      "lat": 33.08917,
+      "lon": 35.13512,
+      "groundElev": 256,
+      "roadDistM": 92,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 68,
+      "maxReachKm": 49.5,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.82512,
+          "lon": 34.97507,
+          "distanceKm": 32.9,
+          "bearingDeg": 207,
+          "marginM": 21
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.75458,
+          "lon": 35.03593,
+          "distanceKm": 38.3,
+          "bearingDeg": 194,
+          "marginM": 27
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.64462,
+          "lon": 35.10745,
+          "distanceKm": 49.5,
+          "bearingDeg": 183,
+          "marginM": 20
+        }
+      ]
+    },
+    {
+      "lat": 32.79155,
+      "lon": 35.67667,
+      "groundElev": 286,
+      "roadDistM": 6,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 67,
+      "maxReachKm": 47.6,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.68677,
+          "lon": 35.39787,
+          "distanceKm": 28.6,
+          "bearingDeg": 246,
+          "marginM": 16
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.50937,
+          "lon": 35.41549,
+          "distanceKm": 39.8,
+          "bearingDeg": 218,
+          "marginM": 24
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.41659,
+          "lon": 35.43062,
+          "distanceKm": 47.6,
+          "bearingDeg": 209,
+          "marginM": 27
+        }
+      ]
+    },
+    {
+      "lat": 32.94036,
+      "lon": 35.45446,
+      "groundElev": 630,
+      "roadDistM": 59,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 67,
+      "maxReachKm": 48.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69017,
+          "lon": 35.39128,
+          "distanceKm": 28.4,
+          "bearingDeg": 192,
+          "marginM": 21
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.74216,
+          "lon": 35.06349,
+          "distanceKm": 42.7,
+          "bearingDeg": 239,
+          "marginM": 18
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.50758,
+          "lon": 35.41858,
+          "distanceKm": 48.2,
+          "bearingDeg": 184,
+          "marginM": 28
+        }
+      ]
+    },
+    {
+      "lat": 32.95389,
+      "lon": 35.35839,
+      "groundElev": 819,
+      "roadDistM": 220,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 57,
+      "maxReachKm": 48.1,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.68995,
+          "lon": 35.38582,
+          "distanceKm": 29.5,
+          "bearingDeg": 175,
+          "marginM": 18
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.76002,
+          "lon": 35.02988,
+          "distanceKm": 37.5,
+          "bearingDeg": 235,
+          "marginM": 23
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.52272,
+          "lon": 35.39414,
+          "distanceKm": 48.1,
+          "bearingDeg": 176,
+          "marginM": 17
+        }
+      ]
+    },
+    {
+      "lat": 32.75096,
+      "lon": 35.05179,
+      "groundElev": 363,
+      "roadDistM": 54,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 51,
+      "maxReachKm": 49.3,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.93768,
+          "lon": 35.29066,
+          "distanceKm": 30.5,
+          "bearingDeg": 47,
+          "marginM": 13
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.07692,
+          "lon": 35.19341,
+          "distanceKm": 38.6,
+          "bearingDeg": 20,
+          "marginM": 19
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.97859,
+          "lon": 35.50501,
+          "distanceKm": 49.3,
+          "bearingDeg": 59,
+          "marginM": 20
+        }
+      ]
+    },
+    {
+      "lat": 32.50745,
+      "lon": 35.41681,
+      "groundElev": 328,
+      "roadDistM": 432,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 51,
+      "maxReachKm": 49,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.72337,
+          "lon": 35.64814,
+          "distanceKm": 32.3,
+          "bearingDeg": 42,
+          "marginM": 12
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.79204,
+          "lon": 35.67215,
+          "distanceKm": 39.7,
+          "bearingDeg": 37,
+          "marginM": 24
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.94823,
+          "lon": 35.40765,
+          "distanceKm": 49,
+          "bearingDeg": 359,
+          "marginM": 16
+        }
+      ]
+    },
+    {
+      "lat": 32.75096,
+      "lon": 35.03579,
+      "groundElev": 400,
+      "roadDistM": 19,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 51,
+      "maxReachKm": 49.8,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.94432,
+          "lon": 35.30123,
+          "distanceKm": 32.8,
+          "bearingDeg": 49,
+          "marginM": 16
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.07656,
+          "lon": 35.19283,
+          "distanceKm": 39.1,
+          "bearingDeg": 22,
+          "marginM": 16
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.96722,
+          "lon": 35.50267,
+          "distanceKm": 49.8,
+          "bearingDeg": 61,
+          "marginM": 19
+        }
+      ]
+    },
+    {
+      "lat": 32.95389,
+      "lon": 35.51881,
+      "groundElev": 637,
+      "roadDistM": 201,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 47,
+      "maxReachKm": 49.4,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69017,
+          "lon": 35.39224,
+          "distanceKm": 31.6,
+          "bearingDeg": 202,
+          "marginM": 12
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.62757,
+          "lon": 35.33821,
+          "distanceKm": 40,
+          "bearingDeg": 205,
+          "marginM": 13
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.51739,
+          "lon": 35.4182,
+          "distanceKm": 49.4,
+          "bearingDeg": 191,
+          "marginM": 22
+        }
+      ]
+    },
+    {
+      "lat": 32.71038,
+      "lon": 35.08344,
+      "groundElev": 431,
+      "roadDistM": 96,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 41,
+      "maxReachKm": 49.3,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.93766,
+          "lon": 35.28033,
+          "distanceKm": 31.3,
+          "bearingDeg": 36,
+          "marginM": 10
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.07682,
+          "lon": 35.19248,
+          "distanceKm": 42,
+          "bearingDeg": 14,
+          "marginM": 13
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.97628,
+          "lon": 35.50518,
+          "distanceKm": 49.3,
+          "bearingDeg": 53,
+          "marginM": 17
+        }
+      ]
+    },
+    {
+      "lat": 32.92683,
+      "lon": 35.22975,
+      "groundElev": 435,
+      "roadDistM": 84,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 39,
+      "maxReachKm": 47.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69445,
+          "lon": 35.09512,
+          "distanceKm": 28.7,
+          "bearingDeg": 206,
+          "marginM": 11
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.60061,
+          "lon": 35.13322,
+          "distanceKm": 37.4,
+          "bearingDeg": 194,
+          "marginM": 13
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.50738,
+          "lon": 35.15098,
+          "distanceKm": 47.2,
+          "bearingDeg": 189,
+          "marginM": 16
+        }
+      ]
+    },
+    {
+      "lat": 32.94036,
+      "lon": 35.26198,
+      "groundElev": 555,
+      "roadDistM": 126,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 38,
+      "maxReachKm": 47.6,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69445,
+          "lon": 35.09335,
+          "distanceKm": 31.6,
+          "bearingDeg": 210,
+          "marginM": 11
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.62287,
+          "lon": 35.12481,
+          "distanceKm": 37.6,
+          "bearingDeg": 200,
+          "marginM": 12
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.51976,
+          "lon": 35.16503,
+          "distanceKm": 47.6,
+          "bearingDeg": 191,
+          "marginM": 15
+        }
+      ]
+    },
+    {
+      "lat": 32.66979,
+      "lon": 35.53083,
+      "groundElev": 140,
+      "roadDistM": 144,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 37,
+      "maxReachKm": 49.6,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.88338,
+          "lon": 35.68372,
+          "distanceKm": 27.7,
+          "bearingDeg": 31,
+          "marginM": 8
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.97403,
+          "lon": 35.73196,
+          "distanceKm": 38.7,
+          "bearingDeg": 29,
+          "marginM": 10
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.0555,
+          "lon": 35.79671,
+          "distanceKm": 49.6,
+          "bearingDeg": 30,
+          "marginM": 18
+        }
+      ]
+    },
+    {
+      "lat": 32.48039,
+      "lon": 35.41647,
+      "groundElev": 481,
+      "roadDistM": 1,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 37,
+      "maxReachKm": 49.9,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69512,
+          "lon": 35.64643,
+          "distanceKm": 32.2,
+          "bearingDeg": 42,
+          "marginM": 12
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.7781,
+          "lon": 35.65548,
+          "distanceKm": 40,
+          "bearingDeg": 34,
+          "marginM": 8
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.8689,
+          "lon": 35.68372,
+          "distanceKm": 49.9,
+          "bearingDeg": 30,
+          "marginM": 16
+        }
+      ]
+    },
+    {
+      "lat": 32.43981,
+      "lon": 35.41595,
+      "groundElev": 480,
+      "roadDistM": 33,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 35,
+      "maxReachKm": 47.4,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.6809,
+          "lon": 35.3002,
+          "distanceKm": 28.9,
+          "bearingDeg": 338,
+          "marginM": 7
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.71462,
+          "lon": 35.68071,
+          "distanceKm": 39.4,
+          "bearingDeg": 39,
+          "marginM": 5
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.8124,
+          "lon": 35.66185,
+          "distanceKm": 47.4,
+          "bearingDeg": 29,
+          "marginM": 24
+        }
+      ]
+    },
+    {
+      "lat": 33.17034,
+      "lon": 35.55404,
+      "groundElev": 512,
+      "roadDistM": 215,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 34,
+      "maxReachKm": 48.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.32837,
+          "lon": 35.78792,
+          "distanceKm": 28,
+          "bearingDeg": 51,
+          "marginM": 22
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.81758,
+          "lon": 35.67439,
+          "distanceKm": 40.8,
+          "bearingDeg": 164,
+          "marginM": 6
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.74444,
+          "lon": 35.65246,
+          "distanceKm": 48.2,
+          "bearingDeg": 169,
+          "marginM": 6
+        }
+      ]
+    },
+    {
+      "lat": 32.48039,
+      "lon": 35.43243,
+      "groundElev": 299,
+      "roadDistM": 522,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 32,
+      "maxReachKm": 49.9,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69515,
+          "lon": 35.64674,
+          "distanceKm": 31.2,
+          "bearingDeg": 40,
+          "marginM": 4
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.72714,
+          "lon": 35.70627,
+          "distanceKm": 37.6,
+          "bearingDeg": 43,
+          "marginM": 16
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.92494,
+          "lon": 35.50686,
+          "distanceKm": 49.9,
+          "bearingDeg": 8,
+          "marginM": 12
+        }
+      ]
+    },
+    {
+      "lat": 32.57509,
+      "lon": 35.5295,
+      "groundElev": 123,
+      "roadDistM": 195,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 32,
+      "maxReachKm": 48.8,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.79163,
+          "lon": 35.67233,
+          "distanceKm": 27.5,
+          "bearingDeg": 29,
+          "marginM": 11
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.91929,
+          "lon": 35.67878,
+          "distanceKm": 40.7,
+          "bearingDeg": 20,
+          "marginM": 10
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.99028,
+          "lon": 35.69998,
+          "distanceKm": 48.8,
+          "bearingDeg": 19,
+          "marginM": 11
+        }
+      ]
+    },
+    {
+      "lat": 32.64273,
+      "lon": 35.53045,
+      "groundElev": 123,
+      "roadDistM": 103,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 32,
+      "maxReachKm": 49.6,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.87021,
+          "lon": 35.68688,
+          "distanceKm": 29.2,
+          "bearingDeg": 30,
+          "marginM": 10
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.95226,
+          "lon": 35.72668,
+          "distanceKm": 39,
+          "bearingDeg": 28,
+          "marginM": 12
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.07696,
+          "lon": 35.6501,
+          "distanceKm": 49.6,
+          "bearingDeg": 13,
+          "marginM": 10
+        }
+      ]
+    },
+    {
+      "lat": 32.71038,
+      "lon": 35.27542,
+      "groundElev": 459,
+      "roadDistM": 64,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 32,
+      "maxReachKm": 48.7,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.95157,
+          "lon": 35.33652,
+          "distanceKm": 27.4,
+          "bearingDeg": 12,
+          "marginM": 8
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.98798,
+          "lon": 35.49881,
+          "distanceKm": 37.3,
+          "bearingDeg": 34,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.93497,
+          "lon": 35.72235,
+          "distanceKm": 48.7,
+          "bearingDeg": 59,
+          "marginM": 12
+        }
+      ]
+    },
+    {
+      "lat": 32.66979,
+      "lon": 35.08307,
+      "groundElev": 366,
+      "roadDistM": 540,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 31,
+      "maxReachKm": 47.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.53054,
+          "lon": 35.35736,
+          "distanceKm": 30,
+          "bearingDeg": 121,
+          "marginM": 6
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.48198,
+          "lon": 35.41238,
+          "distanceKm": 37.3,
+          "bearingDeg": 124,
+          "marginM": 8
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.24882,
+          "lon": 35.02195,
+          "distanceKm": 47.2,
+          "bearingDeg": 187,
+          "marginM": 18
+        }
+      ]
+    },
+    {
+      "lat": 32.80508,
+      "lon": 35.66086,
+      "groundElev": 182,
+      "roadDistM": 68,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 31,
+      "maxReachKm": 47.7,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.94875,
+          "lon": 35.41593,
+          "distanceKm": 27.9,
+          "bearingDeg": 305,
+          "marginM": 5
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.47995,
+          "lon": 35.4202,
+          "distanceKm": 42.6,
+          "bearingDeg": 212,
+          "marginM": 12
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.42609,
+          "lon": 35.42227,
+          "distanceKm": 47.7,
+          "bearingDeg": 208,
+          "marginM": 14
+        }
+      ]
+    },
+    {
+      "lat": 32.96742,
+      "lon": 35.50296,
+      "groundElev": 815,
+      "roadDistM": 9,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 31,
+      "maxReachKm": 49.9,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.72791,
+          "lon": 35.64797,
+          "distanceKm": 29.9,
+          "bearingDeg": 153,
+          "marginM": 6
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.62661,
+          "lon": 35.33951,
+          "distanceKm": 40.9,
+          "bearingDeg": 202,
+          "marginM": 14
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.75602,
+          "lon": 35.03218,
+          "distanceKm": 49.9,
+          "bearingDeg": 242,
+          "marginM": 11
+        }
+      ]
+    },
+    {
+      "lat": 30.93815,
+      "lon": 35.14647,
+      "groundElev": 506,
+      "roadDistM": 341,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 30,
+      "maxReachKm": 48.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 30.82498,
+          "lon": 34.83703,
+          "distanceKm": 32.1,
+          "bearingDeg": 247,
+          "marginM": 5
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 30.59971,
+          "lon": 35.0842,
+          "distanceKm": 38.1,
+          "bearingDeg": 189,
+          "marginM": 12
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 30.50431,
+          "lon": 35.14647,
+          "distanceKm": 48.2,
+          "bearingDeg": 180,
+          "marginM": 13
+        }
+      ]
+    },
+    {
+      "lat": 30.50524,
+      "lon": 34.93942,
+      "groundElev": 581,
+      "roadDistM": 121,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 30,
+      "maxReachKm": 49.4,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 30.29697,
+          "lon": 34.75776,
+          "distanceKm": 29,
+          "bearingDeg": 217,
+          "marginM": 18
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 30.14741,
+          "lon": 34.77229,
+          "distanceKm": 42.9,
+          "bearingDeg": 202,
+          "marginM": 10
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 30.08279,
+          "lon": 35.09801,
+          "distanceKm": 49.4,
+          "bearingDeg": 162,
+          "marginM": 2
+        }
+      ]
+    },
+    {
+      "lat": 32.95389,
+      "lon": 35.39047,
+      "groundElev": 953,
+      "roadDistM": 85,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 30,
+      "maxReachKm": 47.9,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.76492,
+          "lon": 35.65788,
+          "distanceKm": 32.6,
+          "bearingDeg": 130,
+          "marginM": 10
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.6504,
+          "lon": 35.10916,
+          "distanceKm": 42.8,
+          "bearingDeg": 218,
+          "marginM": 2
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.52302,
+          "lon": 35.40832,
+          "distanceKm": 47.9,
+          "bearingDeg": 178,
+          "marginM": 18
+        }
+      ]
+    },
+    {
+      "lat": 32.88625,
+      "lon": 35.71022,
+      "groundElev": 329,
+      "roadDistM": 44,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 29,
+      "maxReachKm": 48.4,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.12104,
+          "lon": 35.56111,
+          "distanceKm": 29.6,
+          "bearingDeg": 332,
+          "marginM": 9
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.2282,
+          "lon": 35.55326,
+          "distanceKm": 40.7,
+          "bearingDeg": 339,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.31366,
+          "lon": 35.80965,
+          "distanceKm": 48.4,
+          "bearingDeg": 11,
+          "marginM": 9
+        }
+      ]
+    },
+    {
+      "lat": 32.88625,
+      "lon": 35.69419,
+      "groundElev": 253,
+      "roadDistM": 163,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 27,
+      "maxReachKm": 49.4,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.1209,
+          "lon": 35.5575,
+          "distanceKm": 29,
+          "bearingDeg": 334,
+          "marginM": 7
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.22851,
+          "lon": 35.55328,
+          "distanceKm": 40.3,
+          "bearingDeg": 341,
+          "marginM": 9
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.32599,
+          "lon": 35.76816,
+          "distanceKm": 49.4,
+          "bearingDeg": 8,
+          "marginM": 11
+        }
+      ]
+    },
+    {
+      "lat": 32.60215,
+      "lon": 35.49792,
+      "groundElev": 196,
+      "roadDistM": 230,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 26,
+      "maxReachKm": 49.9,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.79979,
+          "lon": 35.66885,
+          "distanceKm": 27.2,
+          "bearingDeg": 36,
+          "marginM": 4
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.95165,
+          "lon": 35.33799,
+          "distanceKm": 41.6,
+          "bearingDeg": 339,
+          "marginM": 15
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.96028,
+          "lon": 35.81992,
+          "distanceKm": 49.9,
+          "bearingDeg": 37,
+          "marginM": 7
+        }
+      ]
+    },
+    {
+      "lat": 31.74986,
+      "lon": 35.13822,
+      "groundElev": 834,
+      "roadDistM": 6,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 26,
+      "maxReachKm": 49.7,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 31.77975,
+          "lon": 34.79859,
+          "distanceKm": 32.3,
+          "bearingDeg": 276,
+          "marginM": 5
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 31.47771,
+          "lon": 34.89796,
+          "distanceKm": 37.9,
+          "bearingDeg": 217,
+          "marginM": 9
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 31.3702,
+          "lon": 34.8606,
+          "distanceKm": 49.7,
+          "bearingDeg": 212,
+          "marginM": 12
+        }
+      ]
+    },
+    {
+      "lat": 33.30563,
+      "lon": 35.71709,
+      "groundElev": 1332,
+      "roadDistM": 27,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 26,
+      "maxReachKm": 48.1,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.05427,
+          "lon": 35.5298,
+          "distanceKm": 32.9,
+          "bearingDeg": 212,
+          "marginM": 8
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.97909,
+          "lon": 35.52732,
+          "distanceKm": 40.4,
+          "bearingDeg": 206,
+          "marginM": 10
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.87393,
+          "lon": 35.68115,
+          "distanceKm": 48.1,
+          "bearingDeg": 184,
+          "marginM": 8
+        }
+      ]
+    },
+    {
+      "lat": 32.72391,
+      "lon": 35.05156,
+      "groundElev": 520,
+      "roadDistM": 34,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 25,
+      "maxReachKm": 47.7,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.46764,
+          "lon": 35.05686,
+          "distanceKm": 28.5,
+          "bearingDeg": 179,
+          "marginM": 5
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.36621,
+          "lon": 35.04416,
+          "distanceKm": 39.8,
+          "bearingDeg": 181,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.42538,
+          "lon": 35.41713,
+          "distanceKm": 47.7,
+          "bearingDeg": 134,
+          "marginM": 9
+        }
+      ]
+    },
+    {
+      "lat": 31.74986,
+      "lon": 35.04323,
+      "groundElev": 646,
+      "roadDistM": 59,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 24,
+      "maxReachKm": 50,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 31.48374,
+          "lon": 34.89777,
+          "distanceKm": 32.6,
+          "bearingDeg": 205,
+          "marginM": 9
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 31.43192,
+          "lon": 34.85346,
+          "distanceKm": 39.7,
+          "bearingDeg": 207,
+          "marginM": 10
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 31.559,
+          "lon": 34.56516,
+          "distanceKm": 50,
+          "bearingDeg": 245,
+          "marginM": 5
+        }
+      ]
+    },
+    {
+      "lat": 33.06212,
+      "lon": 35.84158,
+      "groundElev": 1060,
+      "roadDistM": 181,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 24,
+      "maxReachKm": 47.3,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.02355,
+          "lon": 35.51783,
+          "distanceKm": 30.5,
+          "bearingDeg": 262,
+          "marginM": 7
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.82774,
+          "lon": 35.48535,
+          "distanceKm": 42.2,
+          "bearingDeg": 232,
+          "marginM": 8
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.8112,
+          "lon": 35.43177,
+          "distanceKm": 47.3,
+          "bearingDeg": 234,
+          "marginM": 9
+        }
+      ]
+    },
+    {
+      "lat": 32.96742,
+      "lon": 35.29437,
+      "groundElev": 673,
+      "roadDistM": 81,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 24,
+      "maxReachKm": 47.7,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.73022,
+          "lon": 35.08206,
+          "distanceKm": 33,
+          "bearingDeg": 217,
+          "marginM": 10
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.68002,
+          "lon": 35.08933,
+          "distanceKm": 37.3,
+          "bearingDeg": 211,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.54938,
+          "lon": 35.17989,
+          "distanceKm": 47.7,
+          "bearingDeg": 193,
+          "marginM": 2
+        }
+      ]
+    },
+    {
+      "lat": 32.80508,
+      "lon": 34.98821,
+      "groundElev": 286,
+      "roadDistM": 31,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 23,
+      "maxReachKm": 49.8,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.97867,
+          "lon": 35.22656,
+          "distanceKm": 29.5,
+          "bearingDeg": 49,
+          "marginM": 8
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.07769,
+          "lon": 35.22477,
+          "distanceKm": 37.5,
+          "bearingDeg": 36,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.52255,
+          "lon": 35.40099,
+          "distanceKm": 49.8,
+          "bearingDeg": 129,
+          "marginM": 4
+        }
+      ]
+    },
+    {
+      "lat": 32.98095,
+      "lon": 35.50315,
+      "groundElev": 889,
+      "roadDistM": 91,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 22,
+      "maxReachKm": 47.3,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.68903,
+          "lon": 35.50315,
+          "distanceKm": 32.5,
+          "bearingDeg": 180,
+          "marginM": 10
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.6257,
+          "lon": 35.34128,
+          "distanceKm": 42.3,
+          "bearingDeg": 201,
+          "marginM": 5
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.55753,
+          "lon": 35.45035,
+          "distanceKm": 47.3,
+          "bearingDeg": 186,
+          "marginM": 6
+        }
+      ]
+    },
+    {
+      "lat": 33.23799,
+      "lon": 35.55503,
+      "groundElev": 660,
+      "roadDistM": 59,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 21,
+      "maxReachKm": 47.3,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.9898,
+          "lon": 35.6288,
+          "distanceKm": 28.4,
+          "bearingDeg": 166,
+          "marginM": 1
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.89367,
+          "lon": 35.72065,
+          "distanceKm": 41.3,
+          "bearingDeg": 158,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.82204,
+          "lon": 35.66023,
+          "distanceKm": 47.3,
+          "bearingDeg": 168,
+          "marginM": 9
+        }
+      ]
+    },
+    {
+      "lat": 32.57509,
+      "lon": 35.14611,
+      "groundElev": 356,
+      "roadDistM": 52,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 20,
+      "maxReachKm": 48.3,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.83365,
+          "lon": 35.30296,
+          "distanceKm": 32.3,
+          "bearingDeg": 27,
+          "marginM": 5
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.93863,
+          "lon": 35.27034,
+          "distanceKm": 42.1,
+          "bearingDeg": 16,
+          "marginM": 7
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.95475,
+          "lon": 35.39707,
+          "distanceKm": 48.3,
+          "bearingDeg": 29,
+          "marginM": 7
+        }
+      ]
+    },
+    {
+      "lat": 33.1974,
+      "lon": 35.74748,
+      "groundElev": 1079,
+      "roadDistM": 16,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 19,
+      "maxReachKm": 47.4,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.02352,
+          "lon": 35.51744,
+          "distanceKm": 28.9,
+          "bearingDeg": 228,
+          "marginM": 6
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.99175,
+          "lon": 35.42277,
+          "distanceKm": 37.9,
+          "bearingDeg": 233,
+          "marginM": 8
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.82433,
+          "lon": 35.50155,
+          "distanceKm": 47.4,
+          "bearingDeg": 209,
+          "marginM": 5
+        }
+      ]
+    },
+    {
+      "lat": 32.50745,
+      "lon": 35.14545,
+      "groundElev": 456,
+      "roadDistM": 24,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 18,
+      "maxReachKm": 49.9,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.69496,
+          "lon": 35.34624,
+          "distanceKm": 28.1,
+          "bearingDeg": 42,
+          "marginM": 0
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.83405,
+          "lon": 35.30254,
+          "distanceKm": 39.2,
+          "bearingDeg": 22,
+          "marginM": 8
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.93839,
+          "lon": 35.29272,
+          "distanceKm": 49.9,
+          "bearingDeg": 16,
+          "marginM": 10
+        }
+      ]
+    },
+    {
+      "lat": 32.75096,
+      "lon": 35.66002,
+      "groundElev": 326,
+      "roadDistM": 334,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 18,
+      "maxReachKm": 49.1,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.94864,
+          "lon": 35.4158,
+          "distanceKm": 31.7,
+          "bearingDeg": 314,
+          "marginM": 6
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.93043,
+          "lon": 35.25643,
+          "distanceKm": 42.7,
+          "bearingDeg": 298,
+          "marginM": 11
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.18266,
+          "lon": 35.55037,
+          "distanceKm": 49.1,
+          "bearingDeg": 348,
+          "marginM": 1
+        }
+      ]
+    },
+    {
+      "lat": 32.87272,
+      "lon": 35.71,
+      "groundElev": 346,
+      "roadDistM": 312,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 15,
+      "maxReachKm": 47.5,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.12119,
+          "lon": 35.55878,
+          "distanceKm": 31,
+          "bearingDeg": 333,
+          "marginM": 5
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.18802,
+          "lon": 35.55003,
+          "distanceKm": 38.1,
+          "bearingDeg": 337,
+          "marginM": 6
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.29479,
+          "lon": 35.78999,
+          "distanceKm": 47.5,
+          "bearingDeg": 9,
+          "marginM": 5
+        }
+      ]
+    },
+    {
+      "lat": 32.80508,
+      "lon": 35.6929,
+      "groundElev": 319,
+      "roadDistM": 227,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 15,
+      "maxReachKm": 47.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.95148,
+          "lon": 35.38995,
+          "distanceKm": 32.6,
+          "bearingDeg": 300,
+          "marginM": 3
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.12133,
+          "lon": 35.56285,
+          "distanceKm": 37.2,
+          "bearingDeg": 341,
+          "marginM": 5
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.21468,
+          "lon": 35.56169,
+          "distanceKm": 47.2,
+          "bearingDeg": 345,
+          "marginM": 7
+        }
+      ]
+    },
+    {
+      "lat": 32.80508,
+      "lon": 35.67688,
+      "groundElev": 295,
+      "roadDistM": 130,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 14,
+      "maxReachKm": 48.8,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.68909,
+          "lon": 35.39509,
+          "distanceKm": 29.3,
+          "bearingDeg": 244,
+          "marginM": 3
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.94389,
+          "lon": 35.30388,
+          "distanceKm": 38.1,
+          "bearingDeg": 294,
+          "marginM": 6
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 33.23247,
+          "lon": 35.5589,
+          "distanceKm": 48.8,
+          "bearingDeg": 347,
+          "marginM": 5
+        }
+      ]
+    },
+    {
+      "lat": 33.21093,
+      "lon": 35.71553,
+      "groundElev": 820,
+      "roadDistM": 459,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 14,
+      "maxReachKm": 49.8,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 33.03027,
+          "lon": 35.50763,
+          "distanceKm": 27.9,
+          "bearingDeg": 224,
+          "marginM": 4
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 33.00951,
+          "lon": 35.39743,
+          "distanceKm": 37.1,
+          "bearingDeg": 233,
+          "marginM": 6
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.79552,
+          "lon": 35.51595,
+          "distanceKm": 49.8,
+          "bearingDeg": 202,
+          "marginM": 3
+        }
+      ]
+    },
+    {
+      "lat": 33.14329,
+      "lon": 35.55365,
+      "groundElev": 484,
+      "roadDistM": 34,
+      "roadSource": "osrm",
+      "bandsClear": 3,
+      "clearanceSum": 12,
+      "maxReachKm": 47.1,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.89344,
+          "lon": 35.69872,
+          "distanceKm": 30.9,
+          "bearingDeg": 154,
+          "marginM": 4
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.81711,
+          "lon": 35.67229,
+          "distanceKm": 37.9,
+          "bearingDeg": 163,
+          "marginM": 4
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.72745,
+          "lon": 35.64972,
+          "distanceKm": 47.1,
+          "bearingDeg": 169,
+          "marginM": 5
+        }
+      ]
+    },
+    {
+      "lat": 33.12976,
+      "lon": 35.68204,
+      "groundElev": 614,
+      "roadDistM": 53,
+      "roadSource": "osm",
+      "bandsClear": 3,
+      "clearanceSum": 12,
+      "maxReachKm": 48.2,
+      "bands": [
+        {
+          "km": 30,
+          "found": true,
+          "clear": true,
+          "lat": 32.9972,
+          "lon": 35.41954,
+          "distanceKm": 28.6,
+          "bearingDeg": 239,
+          "marginM": 6
+        },
+        {
+          "km": 40,
+          "found": true,
+          "clear": true,
+          "lat": 32.76481,
+          "lon": 35.54106,
+          "distanceKm": 42.7,
+          "bearingDeg": 198,
+          "marginM": 3
+        },
+        {
+          "km": 50,
+          "found": true,
+          "clear": true,
+          "lat": 32.73326,
+          "lon": 35.47228,
+          "distanceKm": 48.2,
+          "bearingDeg": 204,
+          "marginM": 3
+        }
+      ]
+    }
+  ]
+}
