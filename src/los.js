@@ -1,6 +1,7 @@
 // los.js — line-of-sight physics (pure, no DOM). Importable in Node for tests.
 // Earth curvature uses the 4/3 effective-radius model; clearance uses Fresnel zones.
 import { EARTH_RADIUS_M, distanceM, bearingDeg, lerpPoint } from './geo.js';
+import { diffractionParamV, knifeEdgeLossDb } from './diffraction.js';
 
 export const LIGHT_SPEED = 299792458; // m/s
 export const K_FACTOR = 4 / 3;        // standard atmospheric refraction
@@ -58,11 +59,13 @@ export function analyzeLink({ a, b, freqHz, fresnelPct, sampleElev }) {
   const hB = effectiveHeight(b);
 
   const N = Math.max(64, Math.min(600, Math.round(D / 30)));
+  const lambda = freqHz > 0 ? LIGHT_SPEED / freqHz : 0;
   const samples = [];
   let minMargin = Infinity;
   let minAtKm = 0;
   let minTerrain = NaN; // effective terrain at the determining point
   let withData = 0;
+  let maxV = -Infinity; // worst (largest) knife-edge diffraction parameter along the path
   const total = N - 1;
 
   for (let i = 1; i < N; i++) {
@@ -86,6 +89,10 @@ export function analyzeLink({ a, b, freqHz, fresnelPct, sampleElev }) {
         minAtKm = km;
         minTerrain = effTerrain;
       }
+      // height of (curvature-corrected) terrain above the straight line of sight
+      const h = terrain + bulge - sight;
+      const v = diffractionParamV(h, d1, d2, lambda);
+      if (v > maxV) maxV = v;
     }
     samples.push({ km, terrain, effTerrain, sight, f60, fresnelFull: sight - fr });
   }
@@ -106,5 +113,8 @@ export function analyzeLink({ a, b, freqHz, fresnelPct, sampleElev }) {
     minAtKm,
     minTerrain, // effective terrain elevation at the determining point
     clear: hadData && minMargin >= 0, // binary YES/NO
+    // single dominant knife-edge diffraction loss (dB) for the worst obstruction;
+    // ~0 when the path clears with Fresnel margin, grows as terrain intrudes.
+    diffractionLossDb: hadData && lambda > 0 ? knifeEdgeLossDb(maxV) : NaN,
   };
 }

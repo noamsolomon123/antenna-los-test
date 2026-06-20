@@ -230,6 +230,24 @@
     border-radius:7px; padding:3px 9px; transition:background .15s,color .15s,border-color .15s; }
   .rm-btn:hover { color:#fff; background:#e74c3c; border-color:#e74c3c; }
   .rm-btn:focus-visible { outline:2px solid #ff9b9b; outline-offset:2px; }
+  /* tools card */
+  .tools { background:linear-gradient(135deg,#1b2230,#202834); border-right-color:#7c5cff; }
+  .toolbtns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .toolbtn { font:inherit; font-size:.9em; font-weight:600; cursor:pointer; color:#dce7f5;
+    background:#222b38; border:1px solid #38445a; border-radius:9px; padding:9px 10px; text-align:center;
+    transition:background .15s,border-color .15s,transform .1s; }
+  .toolbtn:hover:not(:disabled) { background:#2c3850; border-color:#4f9af0; }
+  .toolbtn:active:not(:disabled) { transform:translateY(1px); }
+  .toolbtn:disabled { opacity:.42; cursor:not-allowed; }
+  .toolbtn:focus-visible { outline:2px solid #6ad0ff; outline-offset:2px; }
+  .bld-toggle { display:flex; align-items:center; gap:8px; margin-top:11px; font-size:.85em; color:#aebccd; cursor:pointer; }
+  .bld-toggle input { width:16px; height:16px; accent-color:#7c5cff; cursor:pointer; }
+  .tool-result { margin-top:10px; font-size:.86em; color:#c4d4e6; line-height:1.55; }
+  .tool-result:empty { display:none; }
+  .tool-result .tr-head { font-weight:700; color:#fff; margin-bottom:4px; }
+  .tool-result .tr-row { padding:5px 0; border-top:1px solid rgba(125,165,205,.14); }
+  .tool-result a { color:#6ad0ff; }
+  .tool-result b { color:#cfe0f5; unicode-bidi:isolate; }
   /* coordinates / numeric runs must not bidi-scramble inside RTL Hebrew */
   .coords, #exp-table .coords { unicode-bidi:isolate; }
   /* explore-table: cells right-aligned under their right-aligned headers, numbers isolated */
@@ -361,6 +379,18 @@
       <label>רגישות מקלט <input id="lb-sens" type="number" value="-85" step="1" aria-label="רגישות מקלט dBm"> dBm</label>
     </div>
     <div class="lb-result muted" id="lb-result" aria-live="polite">מקם אנטנה A ו-B כדי לחשב תקציב קישור</div>
+  </div>
+
+  <div class="card tools">
+    <h2>🧰 כלים</h2>
+    <div class="toolbtns">
+      <button class="toolbtn" id="opt-mast" disabled>📐 גובה תורן מינימלי</button>
+      <button class="toolbtn" id="find-relay" disabled>🛰️ מצא אתר ממסר</button>
+      <button class="toolbtn" id="share-link">🔗 שתף קישור</button>
+      <button class="toolbtn" id="export-kml" disabled>⬇️ ייצוא KML</button>
+    </div>
+    <label class="bld-toggle"><input type="checkbox" id="bld-toggle"> כלול גובה מבנים בערים (OSM)</label>
+    <div class="tool-result" id="tool-result" aria-live="polite"></div>
   </div>
 
   <div class="chartbox">

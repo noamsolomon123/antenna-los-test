@@ -44,6 +44,7 @@ export function initMap(elId, handlers) {
   let nationalSiteGroup = null;
   let natZoomHandler = null;
   let foundMarker = null;
+  let relayGroup = null;
   let selected = 'A';
 
   map.on('click', (e) => handlers.onMapClick(e.latlng));
@@ -89,6 +90,27 @@ export function initMap(elId, handlers) {
 
     removeAntenna(which) {
       if (markers[which]) { map.removeLayer(markers[which]); markers[which] = null; }
+    },
+
+    clearRelays() {
+      if (relayGroup) { map.removeLayer(relayGroup); relayGroup = null; }
+    },
+
+    // show candidate relay sites (each sees both A and B) as numbered purple pins
+    showRelays(sites) {
+      this.clearRelays();
+      if (!sites || !sites.length) return;
+      relayGroup = L.layerGroup().addTo(map);
+      sites.forEach((s, i) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:#7c5cff;color:#fff;font-weight:800;font-size:12px;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5)">${i + 1}</div>`,
+          iconSize: [24, 24], iconAnchor: [12, 12],
+        });
+        L.marker([s.lat, s.lon], { icon, zIndexOffset: 900 })
+          .addTo(relayGroup)
+          .bindPopup(`<b>אתר ממסר #${i + 1}</b><br>גובה קרקע ${Math.round(s.groundElev)} מ׳<br>מרווח ל-A ${Math.round(s.marginA)} מ׳ · ל-B ${Math.round(s.marginB)} מ׳`);
+      });
     },
 
     drawLink(a, b, clear) {

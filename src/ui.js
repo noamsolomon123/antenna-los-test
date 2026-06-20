@@ -16,6 +16,12 @@ import { searchPlaces, reversePlace } from './geocode.js';
 import { runNationalScan, cancelNationalScan, israelBBox } from './national.js';
 import { renderNational } from './national-view.js';
 import { closeDrawer } from './mobile.js';
+import { minMastForClearance } from './optimize.js';
+import { findRelaySites } from './relay.js';
+import { encodeState, decodeState } from './permalink.js';
+import { buildLinkKml } from './kml.js';
+import { fetchBuildings, buildingHeightAt } from './buildings.js';
+import { magneticDeclination, trueToMagnetic } from './declination.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
@@ -29,6 +35,9 @@ let nationalRunning = false; // a scan is in flight — ignore re-entry (e.g. cl
 let natInfoToken = 0; // invalidates stale reverse-geocode fills when a newer site is clicked
 let savedFileCache = null; // parsed data/national-israel.json, memoized so tab switches don't refetch
 let toastTimer = null;
+let includeBuildings = false; // when on, add OSM building heights to the LOS profile
+let buildingsCache = { key: null, list: [] }; // memoized buildings for the current path box
+let restoringPermalink = false; // suppress hash-writes while restoring from a shared link
 const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
@@ -45,14 +54,27 @@ export function initUI() {
   updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
-  ['lb-tx', 'lb-gain', 'lb-sens'].forEach((id) => { const el = $(id); if (el) el.addEventListener('input', renderBudget); });
+  ['lb-tx', 'lb-gain', 'lb-sens'].forEach((id) => { const el = $(id); if (el) el.addEventListener('input', () => { renderBudget(); writeHash(); }); });
   ['A', 'B'].forEach((w) => { const el = $(`ant${w}-remove`); if (el) el.addEventListener('click', () => removeAntenna(w)); });
+  // tools card
+  $('opt-mast').addEventListener('click', optimizeMastUI);
+  $('find-relay').addEventListener('click', findRelayUI);
+  $('share-link').addEventListener('click', shareLinkUI);
+  $('export-kml').addEventListener('click', exportKmlUI);
+  $('bld-toggle').addEventListener('change', (e) => {
+    includeBuildings = e.target.checked;
+    buildingsCache = { key: null, list: [] };
+    if (state.antennaA && state.antennaB) recomputeLink(true);
+  });
   renderBudget();
-  // first visit: open straight to the saved all-Israel results (instant "wow"); returning
-  // users keep the scan tab. The national-mode banner makes the locked map obvious + exitable.
+  updateToolButtons();
+  // a shared permalink takes priority over the first-visit national view
+  const fromLink = restoreFromHash();
+  // first visit (no shared link): open straight to the saved all-Israel results (instant "wow");
+  // returning users keep the scan tab. The national-mode banner makes the locked map exitable.
   let firstVisit = false;
   try { firstVisit = !localStorage.getItem('nat-seen'); localStorage.setItem('nat-seen', '1'); } catch (_) {}
-  if (firstVisit) setNatTab('saved');
+  if (firstVisit && !fromLink) setNatTab('saved');
   updateCoach();
   syncAria();
 }
@@ -573,12 +595,14 @@ function recomputeLink(ensure) {
 
 async function doRecompute(ensure) {
   const a = state.antennaA, b = state.antennaB;
-  if (!a || !b) { renderVerdict(null); renderBudget(); $('profile').innerHTML = ''; mapCtl.drawLink(null, null); return; }
+  if (!a || !b) { renderVerdict(null); renderBudget(); $('profile').innerHTML = ''; mapCtl.drawLink(null, null); mapCtl.clearRelays(); setToolResult(''); afterChange(); return; }
   const my = ++linkToken; // guards the async path below against an older recompute finishing late
   if (ensure) {
     setStatus('טוען נתוני שטח…');
     await ensureCovered(pathBox(a, b), PROFILE_ZOOM);
     if (my !== linkToken || state.antennaA !== a || state.antennaB !== b) return; // superseded by a newer move
+    if (!(await ensureBuildings(a, b, my))) return; // optional OSM building heights
+    if (my !== linkToken) return;
     setStatus('');
     a.groundElev = elevation(a.lat, a.lon, PROFILE_ZOOM);
     b.groundElev = elevation(b.lat, b.lon, PROFILE_ZOOM);
@@ -589,11 +613,12 @@ async function doRecompute(ensure) {
     renderBudget();
     $('profile').innerHTML = '';
     mapCtl.drawLink(L.latLng(a.lat, a.lon), L.latLng(b.lat, b.lon), false);
+    afterChange();
     return;
   }
   const result = analyzeLink({
     a, b, freqHz: freqHz(), fresnelPct: state.fresnelPct,
-    sampleElev: (la, lo) => elevation(la, lo, PROFILE_ZOOM),
+    sampleElev: makeSampleElev(),
   });
   update({ link: result });
   renderVerdict(result);
@@ -602,8 +627,13 @@ async function doRecompute(ensure) {
   mapCtl.drawLink(L.latLng(a.lat, a.lon), L.latLng(b.lat, b.lon), result.clear);
   mapCtl.setAntenna('A', [a.lat, a.lon], tipFor('A'));
   mapCtl.setAntenna('B', [b.lat, b.lon], tipFor('B'));
+  mapCtl.clearRelays();
   updateCards();
+  afterChange();
 }
+
+// run after any change that affects the link: refresh tool button states + share URL
+function afterChange() { updateToolButtons(); writeHash(); }
 
 function pathBox(a, b) {
   const pad = 0.03;
@@ -626,7 +656,9 @@ function renderVerdict(r) {
   }
   if (r.noStationData) { setNeutral('אין נתוני שטח במיקום אחת התחנות — בחר נקודה ביבשה'); return; }
   $('v-dist').textContent = r.distanceKm.toFixed(1) + ' ק"מ';
-  $('v-az').textContent = r.bearingDeg.toFixed(0) + '°';
+  const oLat = state.antennaA ? state.antennaA.lat : 31.5;
+  const oLon = state.antennaA ? state.antennaA.lon : 35.0;
+  $('v-az').textContent = `${r.bearingDeg.toFixed(0)}° אמת · ${trueToMagnetic(r.bearingDeg, oLat, oLon).toFixed(0)}° מצפן`;
   $('v-freq').textContent = fmtFreq(state.frequencyMHz);
   if (!r.hasData) { setNeutral('— אין נתוני שטח —'); return; }
   if (r.dataFraction < 0.8) { setNeutral(`נתונים חלקיים (${Math.round(r.dataFraction * 100)}%) — לא ניתן לקבוע`); return; }
@@ -657,7 +689,10 @@ function renderBudget() {
   const a = state.antennaA, b = state.antennaB;
   if (!a || !b) { el.className = 'lb-result muted'; el.textContent = 'מקם אנטנה A ו-B כדי לחשב תקציב קישור'; return; }
   const distKm = distanceM([a.lat, a.lon], [b.lat, b.lon]) / 1000;
-  const r = computeLinkBudget({ ...readBudgetInputs(), freqMHz: state.frequencyMHz, distKm });
+  const link = state.link;
+  const sameLink = link && link.distanceKm != null && Math.abs(link.distanceKm - distKm) < 0.05;
+  const diff = sameLink && Number.isFinite(link.diffractionLossDb) ? link.diffractionLossDb : 0;
+  const r = computeLinkBudget({ ...readBudgetInputs(), extraLossDb: diff, freqMHz: state.frequencyMHz, distKm });
   const [cls, label] = LB_Q[r.quality] || LB_Q.unknown;
   el.className = 'lb-result';
   el.innerHTML =
@@ -665,10 +700,133 @@ function renderBudget() {
     '<div class="lb-grid">' +
     `<span>EIRP: <b>${r.eirp.toFixed(1)} dBm</b></span>` +
     `<span>אובדן מסלול: <b>${r.fspl.toFixed(1)} dB</b></span>` +
+    (diff > 0.1 ? `<span>אובדן עקיפה: <b>${diff.toFixed(1)} dB</b></span>` : '') +
     `<span>הספק נקלט: <b>${r.rxPowerDbm.toFixed(1)} dBm</b></span>` +
     `<span>טווח מקס': <b>${r.maxRangeKm.toFixed(1)} ק"מ</b></span>` +
     '</div>' +
-    '<div class="lb-note">קירוב שטח חופשי (FSPL) — לא כולל עדיין עקיפת מכשולים/גשם; חסימות נבדקות בכרטיס קו הראייה.</div>';
+    `<div class="lb-note">${diff > 0.1
+      ? 'כולל אובדן עקיפה (knife-edge) מהמכשול הדומיננטי בנתיב. גשם/קלאטר עדיין לא נכללים.'
+      : 'קירוב שטח חופשי (FSPL). חסימות נבדקות בכרטיס קו הראייה.'}</div>`;
+}
+
+// ---------- terrain sampler (optionally augmented with OSM building heights) --------
+function makeSampleElev() {
+  const blds = includeBuildings ? buildingsCache.list : null;
+  if (blds && blds.length) {
+    return (la, lo) => { const g = elevation(la, lo, PROFILE_ZOOM); return Number.isNaN(g) ? g : g + buildingHeightAt(la, lo, blds); };
+  }
+  return (la, lo) => elevation(la, lo, PROFILE_ZOOM);
+}
+
+// Fetch OSM building footprints+heights for the current A↔B corridor (cached per box).
+// Skipped for long paths (few buildings, big query) to stay responsive.
+async function ensureBuildings(a, b, guardToken) {
+  if (!includeBuildings) { buildingsCache = { key: null, list: [] }; return true; }
+  const distKm = distanceM([a.lat, a.lon], [b.lat, b.lon]) / 1000;
+  if (distKm > 25) { buildingsCache = { key: 'toolong', list: [] }; return true; }
+  const box = pathBox(a, b);
+  const key = `${box.south.toFixed(3)},${box.west.toFixed(3)},${box.north.toFixed(3)},${box.east.toFixed(3)}`;
+  if (buildingsCache.key === key) return true;
+  setStatus('טוען גובה מבנים…');
+  try {
+    const list = await fetchBuildings(box);
+    if (guardToken !== linkToken) return false;
+    buildingsCache = { key, list };
+  } catch (_) { buildingsCache = { key, list: [] }; }
+  return true;
+}
+
+// ---------- tools: enable/disable + handlers --------------------------------
+function updateToolButtons() {
+  const both = !!(state.antennaA && state.antennaB);
+  ['opt-mast', 'export-kml'].forEach((id) => { const el = $(id); if (el) el.disabled = !both; });
+  const blocked = both && state.link && state.link.hasData && !state.link.clear;
+  const relay = $('find-relay'); if (relay) relay.disabled = !blocked;
+}
+function setToolResult(html) { const el = $('tool-result'); if (el) el.innerHTML = html || ''; }
+
+async function optimizeMastUI() {
+  const a = state.antennaA, b = state.antennaB;
+  if (!a || !b) return;
+  setToolResult('<div class="tr-head">מחשב גובה תורן…</div>');
+  await ensureCovered(pathBox(a, b), PROFILE_ZOOM);
+  const sampleElev = makeSampleElev();
+  const opts = { freqHz: freqHz(), fresnelPct: state.fresnelPct, sampleElev, maxMast: 120 };
+  const hA = minMastForClearance({ a, b, side: 'A', ...opts });
+  const hB = minMastForClearance({ a, b, side: 'B', ...opts });
+  const fmt = (h, w) => h === null ? `צד ${w}: לא נפתח עד 120 מ׳` : h === 0 ? `צד ${w}: כבר פנוי ✓` : `הרם צד ${w} ל-<b>${h} מ׳</b>`;
+  setToolResult(`<div class="tr-head">📐 גובה תורן מינימלי לפתיחת הקו</div><div class="tr-row">${fmt(hA, 'A')}</div><div class="tr-row">${fmt(hB, 'B')}</div>`);
+}
+
+async function findRelayUI() {
+  const a = state.antennaA, b = state.antennaB;
+  if (!a || !b) return;
+  setToolResult('<div class="tr-head">מחפש אתר ממסר… (מספר שניות)</div>');
+  const pad = 0.1;
+  const box = { south: Math.min(a.lat, b.lat) - pad, north: Math.max(a.lat, b.lat) + pad, west: Math.min(a.lon, b.lon) - pad, east: Math.max(a.lon, b.lon) + pad };
+  await ensureCovered(box, PROFILE_ZOOM);
+  const sampleElev = (la, lo) => elevation(la, lo, PROFILE_ZOOM);
+  const sites = findRelaySites({ a, b, freqHz: freqHz(), fresnelPct: state.fresnelPct, sampleElev, relayMast: 10, gridStepKm: 1, padKm: 2.5, maxResults: 5, maxTest: 260, safe: isSafe });
+  if (!sites.length) { mapCtl.clearRelays(); setToolResult('<div class="tr-head">🛰️ לא נמצא אתר ממסר אוטומטי</div><div class="tr-row">נסה להרחיק/להזיז את הנקודות או להגביה תורן.</div>'); return; }
+  mapCtl.showRelays(sites);
+  const rows = sites.map((s, i) =>
+    `<div class="tr-row">#${i + 1} <b>${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</b> · גובה ${Math.round(s.groundElev)} מ׳ · מרווח ${Math.min(s.marginA, s.marginB).toFixed(0)} מ׳ ` +
+    `<a href="https://www.google.com/maps?q=${s.lat},${s.lon}" target="_blank" rel="noopener">🗺️</a></div>`).join('');
+  setToolResult(`<div class="tr-head">🛰️ אתרי ממסר (רואים את A ואת B)</div>${rows}`);
+}
+
+async function shareLinkUI() {
+  const url = location.origin + location.pathname + '#' + currentHash();
+  try { await navigator.clipboard.writeText(url); showToast('הקישור הועתק ללוח 📋'); }
+  catch (_) { showToast('העתק ידנית: ' + url); }
+}
+
+function exportKmlUI() {
+  const a = state.antennaA, b = state.antennaB;
+  if (!a || !b) return;
+  const link = state.link;
+  const kml = buildLinkKml({
+    a, b,
+    distanceKm: link ? link.distanceKm : distanceM([a.lat, a.lon], [b.lat, b.lon]) / 1000,
+    clear: link ? link.clear : false, freqMHz: state.frequencyMHz,
+  });
+  const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+  const url = URL.createObjectURL(blob);
+  const el = document.createElement('a');
+  el.href = url; el.download = 'antenna-link.kml';
+  document.body.appendChild(el); el.click(); el.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('קובץ KML הורד ⬇️');
+}
+
+// ---------- shareable permalink ---------------------------------------------
+function currentBudget() {
+  const num = (id, d) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : d; };
+  return { tx: num('lb-tx', 20), gain: num('lb-gain', 20), sens: num('lb-sens', -85) };
+}
+function currentHash() {
+  return encodeState({ antennaA: state.antennaA, antennaB: state.antennaB, frequencyMHz: state.frequencyMHz, observer: state.observer, budget: currentBudget() });
+}
+function writeHash() {
+  if (restoringPermalink) return;
+  const h = currentHash();
+  try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (_) {}
+}
+function restoreFromHash() {
+  const d = decodeState(location.hash);
+  if (!d.antennaA && !d.antennaB && !d.frequencyMHz) return false;
+  restoringPermalink = true;
+  if (d.frequencyMHz) {
+    update({ frequencyMHz: d.frequencyMHz });
+    $('freq-input').value = d.frequencyMHz; $('freq-ghz').textContent = fmtFreq(d.frequencyMHz);
+    document.querySelectorAll('.preset').forEach((bn) => bn.classList.toggle('active', +bn.dataset.mhz === d.frequencyMHz));
+  }
+  if (d.budget) { $('lb-tx').value = d.budget.tx; $('lb-gain').value = d.budget.gain; $('lb-sens').value = d.budget.sens; }
+  if (d.observer) { update({ observer: d.observer }); $('obs-A').classList.toggle('active', d.observer === 'A'); $('obs-B').classList.toggle('active', d.observer === 'B'); }
+  if (d.antennaA) { $('antA-mast').value = d.antennaA.mast; placeAntenna('A', L.latLng(d.antennaA.lat, d.antennaA.lon)); }
+  if (d.antennaB) { $('antB-mast').value = d.antennaB.mast; placeAntenna('B', L.latLng(d.antennaB.lat, d.antennaB.lon)); }
+  restoringPermalink = false;
+  return true;
 }
 
 function updateCards() {
