@@ -208,6 +208,28 @@
   .verdict .big.neutral::before { display:none; }
   .verdict.is-yes { border-right-color:var(--ok); }
   .verdict.is-no  { border-right-color:var(--bad); }
+  /* link-budget card */
+  .budget { background:linear-gradient(135deg,#1c2330,#212a36); border-right-color:#4f9af0; }
+  .budget .brow { display:flex; flex-wrap:wrap; gap:9px 14px; margin:4px 0 9px; }
+  .budget label { font-size:.82em; color:#9fb0c3; display:flex; align-items:center; gap:5px; }
+  .budget .brow input { width:60px; background:#11151b; border:1px solid #3a4250; color:#fff; border-radius:6px; padding:4px 6px; font-size:.95em; }
+  .lb-result.muted { color:#8295a9; font-size:.9em; }
+  .lb-pill { display:inline-flex; align-items:center; gap:7px; padding:5px 13px; border-radius:999px; font-weight:600; font-size:.95em; margin-bottom:8px; unicode-bidi:isolate; }
+  .lb-pill::before { content:""; width:9px; height:9px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
+  .lb-strong { color:#27d17c; background:rgba(39,209,124,.14); }
+  .lb-ok     { color:#ffc857; background:rgba(255,200,87,.14); }
+  .lb-weak   { color:#ff9b57; background:rgba(255,155,87,.14); }
+  .lb-none   { color:#ff6b6b; background:rgba(255,107,107,.14); }
+  .lb-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:5px 14px; font-size:.9em; }
+  .lb-grid b { color:#cfe0f5; unicode-bidi:isolate; }
+  .lb-note { margin-top:7px; font-size:.76em; color:#74869a; line-height:1.45; }
+  /* remove-pin button on antenna cards */
+  #cardA h2, #cardB h2 { display:flex; align-items:center; gap:7px; }
+  .rm-btn { margin-inline-start:auto; font:inherit; font-size:.62em; font-weight:600; cursor:pointer;
+    color:#ff9b9b; background:rgba(255,107,107,.12); border:1px solid rgba(255,107,107,.32);
+    border-radius:7px; padding:3px 9px; transition:background .15s,color .15s,border-color .15s; }
+  .rm-btn:hover { color:#fff; background:#e74c3c; border-color:#e74c3c; }
+  .rm-btn:focus-visible { outline:2px solid #ff9b9b; outline-offset:2px; }
   /* coordinates / numeric runs must not bidi-scramble inside RTL Hebrew */
   .coords, #exp-table .coords { unicode-bidi:isolate; }
   /* explore-table: cells right-aligned under their right-aligned headers, numbers isolated */
@@ -297,14 +319,16 @@
   </div>
 
   <div class="card" id="cardA" style="--c:#e74c3c">
-    <h2><span class="badge" style="background:#e74c3c">A</span> אנטנה A</h2>
+    <h2><span class="badge" style="background:#e74c3c">A</span> אנטנה A
+      <button class="rm-btn" id="antA-remove" title="הסר אנטנה A" aria-label="הסר אנטנה A" hidden>✕ הסר</button></h2>
     <div class="row"><span class="coords" id="antA-coords">— , —</span> · גובה קרקע: <b id="antA-ground">—</b></div>
     <div class="field">גובה תורן: <input id="antA-mast" type="number" value="3" min="0" step="1" aria-label="גובה תורן אנטנה A (מטרים)"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
     <div class="awarn" id="antA-warn"></div>
   </div>
 
   <div class="card" id="cardB" style="--c:#3498db">
-    <h2><span class="badge" style="background:#3498db">B</span> אנטנה B</h2>
+    <h2><span class="badge" style="background:#3498db">B</span> אנטנה B
+      <button class="rm-btn" id="antB-remove" title="הסר אנטנה B" aria-label="הסר אנטנה B" hidden>✕ הסר</button></h2>
     <div class="row"><span class="coords" id="antB-coords">— , —</span> · גובה קרקע: <b id="antB-ground">—</b></div>
     <div class="field">גובה תורן: <input id="antB-mast" type="number" value="3" min="0" step="1" aria-label="גובה תורן אנטנה B (מטרים)"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
     <div class="awarn" id="antB-warn"></div>
@@ -327,6 +351,16 @@
     <div class="row"><b>מרחק:</b> <span id="v-dist">—</span> · <b>אזימוט:</b> <span id="v-az">—</span> · <b id="v-freq">5.8 GHz</b></div>
     <div class="big neutral" id="v-result" aria-live="polite" aria-atomic="true">מקם אנטנה A ו-B במפה</div>
     <div class="row" id="v-clearance"></div>
+  </div>
+
+  <div class="card budget">
+    <h2>📡 תקציב קישור</h2>
+    <div class="brow">
+      <label>הספק משדר <input id="lb-tx" type="number" value="20" step="1" aria-label="הספק משדר dBm"> dBm</label>
+      <label>רווח אנטנה <input id="lb-gain" type="number" value="20" step="1" aria-label="רווח אנטנה dBi"> dBi</label>
+      <label>רגישות מקלט <input id="lb-sens" type="number" value="-85" step="1" aria-label="רגישות מקלט dBm"> dBm</label>
+    </div>
+    <div class="lb-result muted" id="lb-result" aria-live="polite">מקם אנטנה A ו-B כדי לחשב תקציב קישור</div>
   </div>
 
   <div class="chartbox">

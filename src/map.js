@@ -69,6 +69,7 @@ export function initMap(elId, handlers) {
     m.on('click', (ev) => { L.DomEvent.stop(ev); selected = which; handlers.onSelect(which); });
     m.on('drag', () => handlers.onMove(which, m.getLatLng(), false));
     m.on('dragend', () => handlers.onMove(which, m.getLatLng(), true));
+    m.on('contextmenu', (ev) => { L.DomEvent.stop(ev); handlers.onRemove && handlers.onRemove(which); }); // right-click to remove
     return m;
   }
 
@@ -84,6 +85,10 @@ export function initMap(elId, handlers) {
         const color = which === 'A' ? '#e74c3c' : '#3498db';
         markers[which].setIcon(antennaIcon(which, color, tipText));
       }
+    },
+
+    removeAntenna(which) {
+      if (markers[which]) { map.removeLayer(markers[which]); markers[which] = null; }
     },
 
     drawLink(a, b, clear) {

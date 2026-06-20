@@ -2,6 +2,8 @@
 // the viewshed compute together. The single controller for user interaction.
 import { state, update, freqHz, DEFAULT_MAST } from './state.js';
 import { analyzeLink, effectiveHeight } from './los.js';
+import { distanceM } from './geo.js';
+import { computeLinkBudget } from './linkbudget.js';
 import { ensureCovered, elevation, elevationAt } from './terrain.js';
 import { initMap } from './map.js';
 import { computeViewshed, clearViewshed, cancelViewshed } from './viewshed.js';
@@ -30,7 +32,7 @@ let toastTimer = null;
 const SOUTH_MAX_LAT = 31.5; // "south" = everything from ~Kiryat Gat / Beersheba southward (incl. the Negev)
 
 export function initUI() {
-  mapCtl = initMap('map', { onMapClick, onMove, onSelect: selectAntenna, onHover });
+  mapCtl = initMap('map', { onMapClick, onMove, onSelect: selectAntenna, onHover, onRemove: removeAntenna });
   wireFrequency();
   wireMasts();
   wireObserver();
@@ -43,6 +45,9 @@ export function initUI() {
   updateObserverNote();
   selectAntenna('A');
   renderVerdict(null);
+  ['lb-tx', 'lb-gain', 'lb-sens'].forEach((id) => { const el = $(id); if (el) el.addEventListener('input', renderBudget); });
+  ['A', 'B'].forEach((w) => { const el = $(`ant${w}-remove`); if (el) el.addEventListener('click', () => removeAntenna(w)); });
+  renderBudget();
   // first visit: open straight to the saved all-Israel results (instant "wow"); returning
   // users keep the scan tab. The national-mode banner makes the locked map obvious + exitable.
   let firstVisit = false;
@@ -513,6 +518,23 @@ function placeAntenna(which, latlng) {
   recomputeLink(true);
 }
 
+// Remove a placed antenna entirely (not just move it): drop its pin, clear its card,
+// and let the next map click re-place it. Clears the link/verdict/budget since one end is gone.
+function removeAntenna(which) {
+  if (!state['antenna' + which]) return;
+  update({ ['antenna' + which]: null });
+  mapCtl.removeAntenna(which);
+  $(`ant${which}-coords`).textContent = '— , —';
+  $(`ant${which}-ground`).textContent = '—';
+  $(`ant${which}-eff`).textContent = '—';
+  $(`ant${which}-warn`).textContent = '';
+  if (which === state.observer) { mapCtl.setRing(null); invalidateObserverDependent(); }
+  selectAntenna(which); // next click re-places this one
+  updateCards();
+  recomputeLink(true); // both-ends check inside clears verdict/profile/budget/link
+  updateCoach();
+}
+
 function onMove(which, latlng, ended) {
   const ant = state['antenna' + which];
   if (!ant) return;
@@ -551,7 +573,7 @@ function recomputeLink(ensure) {
 
 async function doRecompute(ensure) {
   const a = state.antennaA, b = state.antennaB;
-  if (!a || !b) { renderVerdict(null); $('profile').innerHTML = ''; mapCtl.drawLink(null, null); return; }
+  if (!a || !b) { renderVerdict(null); renderBudget(); $('profile').innerHTML = ''; mapCtl.drawLink(null, null); return; }
   const my = ++linkToken; // guards the async path below against an older recompute finishing late
   if (ensure) {
     setStatus('טוען נתוני שטח…');
@@ -564,6 +586,7 @@ async function doRecompute(ensure) {
   }
   if (Number.isNaN(a.groundElev) || Number.isNaN(b.groundElev)) {
     renderVerdict({ noStationData: true });
+    renderBudget();
     $('profile').innerHTML = '';
     mapCtl.drawLink(L.latLng(a.lat, a.lon), L.latLng(b.lat, b.lon), false);
     return;
@@ -574,6 +597,7 @@ async function doRecompute(ensure) {
   });
   update({ link: result });
   renderVerdict(result);
+  renderBudget();
   renderProfile($('profile'), result);
   mapCtl.drawLink(L.latLng(a.lat, a.lon), L.latLng(b.lat, b.lon), result.clear);
   mapCtl.setAntenna('A', [a.lat, a.lon], tipFor('A'));
@@ -613,9 +637,44 @@ function renderVerdict(r) {
     `מרווח פרנל מינימלי: <b>${r.minMargin.toFixed(1)} מ'</b> · נקודה קובעת בק"מ ${r.minAtKm.toFixed(1)}`;
 }
 
+const LB_Q = {
+  strong: ['lb-strong', 'חזק'], ok: ['lb-ok', 'שמיש'],
+  weak: ['lb-weak', 'חלש'], none: ['lb-none', 'לא נסגר'], unknown: ['lb-none', '—'],
+};
+function readBudgetInputs() {
+  const num = (id, d) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : d; };
+  const gain = num('lb-gain', 20);
+  return {
+    txPowerDbm: num('lb-tx', 20), txGainDbi: gain, txCableLossDb: 0.5,
+    rxGainDbi: gain, rxCableLossDb: 0.5, extraLossDb: 0, rxSensitivityDbm: num('lb-sens', -85),
+  };
+}
+// Free-space link budget for the current A↔B distance + frequency. Independent of
+// terrain (the LOS card covers blockage); shown whenever both antennas are placed.
+function renderBudget() {
+  const el = $('lb-result');
+  if (!el) return;
+  const a = state.antennaA, b = state.antennaB;
+  if (!a || !b) { el.className = 'lb-result muted'; el.textContent = 'מקם אנטנה A ו-B כדי לחשב תקציב קישור'; return; }
+  const distKm = distanceM([a.lat, a.lon], [b.lat, b.lon]) / 1000;
+  const r = computeLinkBudget({ ...readBudgetInputs(), freqMHz: state.frequencyMHz, distKm });
+  const [cls, label] = LB_Q[r.quality] || LB_Q.unknown;
+  el.className = 'lb-result';
+  el.innerHTML =
+    `<div class="lb-pill ${cls}">קישור ${label} · מרווח דהייה ${r.fadeMarginDb.toFixed(1)} dB</div>` +
+    '<div class="lb-grid">' +
+    `<span>EIRP: <b>${r.eirp.toFixed(1)} dBm</b></span>` +
+    `<span>אובדן מסלול: <b>${r.fspl.toFixed(1)} dB</b></span>` +
+    `<span>הספק נקלט: <b>${r.rxPowerDbm.toFixed(1)} dBm</b></span>` +
+    `<span>טווח מקס': <b>${r.maxRangeKm.toFixed(1)} ק"מ</b></span>` +
+    '</div>' +
+    '<div class="lb-note">קירוב שטח חופשי (FSPL) — לא כולל עדיין עקיפת מכשולים/גשם; חסימות נבדקות בכרטיס קו הראייה.</div>';
+}
+
 function updateCards() {
   ['A', 'B'].forEach((w) => {
     const ant = state['antenna' + w];
+    const rm = $(`ant${w}-remove`); if (rm) rm.hidden = !ant;
     if (!ant) return;
     const known = !Number.isNaN(ant.groundElev);
     $(`ant${w}-coords`).textContent = `${ant.lat.toFixed(4)}, ${ant.lon.toFixed(4)}`;

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>תדריך RF · רעיונות לשדרוג כלי קו-הראייה לאנטנות</title>
+<meta name="description" content="מפת דרכים של כלים, מקורות מידע ופיצ'רים חינמיים לשדרוג אפליקציית תכנון קו-הראייה (LOS) לאנטנות בישראל — תוצרי מחקר רב-סוכני.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b11; --bg2:#0b121c; --bg3:#0f1825;
+    --panel:rgba(140,180,220,.045); --panel2:rgba(140,180,220,.07);
+    --line:rgba(125,165,205,.15); --line2:rgba(125,165,205,.28);
+    --ink:#e9f1fb; --ink2:#c4d4e6; --muted:#8095ab; --faint:#5d6f86;
+    --teal:#3ad6b0; --cyan:#6ad0ff; --glow:rgba(58,214,176,.5);
+    --must:#36e0a0; --should:#ffc857; --could:#8aa0b8;
+    --no:#ff6b6b; --okline:rgba(54,224,160,.4);
+    --r:16px; --rs:10px;
+    --shadow:0 18px 50px -22px rgba(0,0,0,.85);
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Heebo",system-ui,Arial,sans-serif; font-weight:400;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    background-image:
+      radial-gradient(1100px 620px at 88% -8%, rgba(58,214,176,.10), transparent 60%),
+      radial-gradient(900px 560px at 6% 4%, rgba(106,208,255,.08), transparent 60%),
+      linear-gradient(180deg,#070b11,#070b11);
+  }
+  a{color:inherit}
+  ::selection{background:rgba(58,214,176,.28)}
+  .wrap{max-width:var(--maxw); margin-inline:auto; padding-inline:clamp(16px,4vw,40px)}
+
+  /* faint grid texture */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:54px 54px; opacity:.20; mask-image:radial-gradient(circle at 50% 18%,#000,transparent 78%);
+  }
+
+  /* ---------- HERO ---------- */
+  header.hero{position:relative; z-index:1; padding:clamp(46px,8vw,96px) 0 clamp(30px,4vw,52px); overflow:hidden}
+  .radar{position:absolute; inset-block-start:-130px; inset-inline-start:-130px; width:min(640px,82vw); aspect-ratio:1; opacity:.5; pointer-events:none}
+  .radar .sweep{transform-origin:50% 50%; animation:spin 9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .eyebrow{display:inline-flex; align-items:center; gap:9px; font-family:"JetBrains Mono",monospace; font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); padding:7px 14px; border:1px solid var(--line2); border-radius:999px; background:rgba(58,214,176,.06); backdrop-filter:blur(6px)}
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--teal); box-shadow:0 0 12px var(--glow); animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.4; transform:scale(.7)}}
+  h1{font-family:"Frank Ruhl Libre",serif; font-weight:900; line-height:1.08; margin:.5em 0 .3em; font-size:clamp(30px,5.6vw,60px); letter-spacing:-.01em; max-width:18ch; text-wrap:balance}
+  h1 .hl{color:transparent; background:linear-gradient(120deg,var(--teal),var(--cyan)); -webkit-background-clip:text; background-clip:text}
+  .lede{max-width:64ch; color:var(--ink2); font-size:clamp(15.5px,1.9vw,19px); font-weight:300}
+  .gen-note{margin-top:14px; font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--faint)}
+
+  /* stat strip */
+  .stats{display:flex; flex-wrap:wrap; gap:12px; margin-top:30px}
+  .stat{flex:1 1 150px; min-width:140px; border:1px solid var(--line); border-radius:var(--rs); padding:16px 18px; background:linear-gradient(180deg,var(--panel2),var(--panel)); position:relative; overflow:hidden}
+  .stat::after{content:""; position:absolute; inset-block-start:0; inset-inline-end:0; width:46px; height:46px; background:radial-gradient(circle at 70% 30%,var(--glow),transparent 70%); opacity:.5}
+  .stat b{display:block; font-family:"Frank Ruhl Libre",serif; font-weight:900; font-size:30px; line-height:1; color:var(--ink)}
+  .stat span{font-size:13px; color:var(--muted)}
+
+  /* ---------- STICKY CONTROLS ---------- */
+  .controls{position:sticky; top:0; z-index:30; margin-top:38px; padding:14px 0; background:rgba(8,12,18,.82); backdrop-filter:blur(14px); border-block:1px solid var(--line)}
+  .controls .wrap{display:flex; flex-wrap:wrap; gap:12px; align-items:center}
+  .search{flex:1 1 260px; position:relative; min-width:200px}
+  .search input{width:100%; padding:11px 42px 11px 16px; border-radius:999px; border:1px solid var(--line2); background:var(--bg3); color:var(--ink); font-family:inherit; font-size:15px; outline:none; transition:border-color .15s,box-shadow .15s}
+  .search input:focus{border-color:var(--teal); box-shadow:0 0 0 3px rgba(58,214,176,.16)}
+  .search svg{position:absolute; inset-inline-end:14px; inset-block-start:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--muted)}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{cursor:pointer; user-select:none; font-size:13.5px; font-weight:500; padding:8px 14px; border-radius:999px; border:1px solid var(--line2); background:var(--panel); color:var(--ink2); transition:.15s; white-space:nowrap}
+  .chip:hover{border-color:var(--line2); background:var(--panel2)}
+  .chip[aria-pressed="true"]{color:#06140f; background:var(--teal); border-color:var(--teal); font-weight:700}
+  .chip.pri-must[aria-pressed="true"]{background:var(--must); border-color:var(--must)}
+  .chip.pri-should[aria-pressed="true"]{background:var(--should); border-color:var(--should); color:#1c1403}
+  .chip.pri-could[aria-pressed="true"]{background:var(--could); border-color:var(--could); color:#0c1118}
+  .count{margin-inline-start:auto; font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--muted); white-space:nowrap}
+
+  /* ---------- SECTIONS ---------- */
+  main{position:relative; z-index:1; padding-block:clamp(34px,5vw,60px) 60px}
+  .section{margin-bottom:34px; border:1px solid var(--line); border-radius:var(--r); background:linear-gradient(180deg,rgba(140,180,220,.035),rgba(140,180,220,.012)); overflow:hidden; scroll-margin-top:80px}
+  .sec-head{display:flex; align-items:flex-start; gap:16px; padding:22px clamp(18px,3vw,28px); cursor:pointer; list-style:none}
+  .sec-head::-webkit-details-marker{display:none}
+  .sec-idx{font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--teal); border:1px solid var(--line2); border-radius:8px; padding:5px 9px; background:rgba(58,214,176,.06); flex:none; margin-top:4px}
+  .sec-meta{flex:1; min-width:0}
+  .sec-meta h2{font-family:"Frank Ruhl Libre",serif; font-weight:700; font-size:clamp(20px,3vw,28px); margin:0 0 4px; line-height:1.2}
+  .sec-meta p{margin:0; color:var(--muted); font-size:14.5px; max-width:80ch}
+  .sec-tools{flex:none; display:flex; align-items:center; gap:12px; align-self:center}
+  .sec-tools .n{font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--muted)}
+  .caret{width:22px; height:22px; color:var(--muted); transition:transform .25s}
+  details[open] .caret{transform:rotate(180deg)}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; padding:0 clamp(18px,3vw,28px) 26px}
+
+  /* ---------- ITEM CARD ---------- */
+  .card{position:relative; border:1px solid var(--line); border-radius:var(--rs); padding:18px 18px 16px; background:var(--bg2); display:flex; flex-direction:column; gap:10px; transition:transform .18s,border-color .18s,box-shadow .18s}
+  .card:hover{transform:translateY(-3px); border-color:var(--line2); box-shadow:var(--shadow)}
+  .card::before{content:""; position:absolute; inset-block:0; inset-inline-start:0; width:3px; border-start-start-radius:var(--rs); border-end-start-radius:var(--rs); background:var(--could)}
+  .card.p-must::before{background:linear-gradient(var(--must),rgba(54,224,160,.3)); box-shadow:0 0 14px rgba(54,224,160,.5)}
+  .card.p-should::before{background:var(--should)}
+  .card .top{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .kind{font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(106,208,255,.3); border-radius:6px; padding:3px 7px; background:rgba(106,208,255,.06)}
+  .pri{margin-inline-start:auto; font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px}
+  .pri-must{color:var(--must); background:rgba(54,224,160,.12); border:1px solid rgba(54,224,160,.35)}
+  .pri-should{color:var(--should); background:rgba(255,200,87,.1); border:1px solid rgba(255,200,87,.3)}
+  .pri-could{color:var(--could); background:rgba(138,160,184,.1); border:1px solid rgba(138,160,184,.25)}
+  .card h3{margin:2px 0 0; font-size:16.5px; font-weight:700; line-height:1.35}
+  .card h3 a{text-decoration:none; background-image:linear-gradient(var(--teal),var(--teal)); background-size:0% 1.5px; background-repeat:no-repeat; background-position:100% 100%; transition:background-size .25s}
+  .card h3 a:hover{background-size:100% 1.5px; color:var(--teal)}
+  .ext{display:inline-block; width:13px; height:13px; min-width:13px; margin-inline-start:4px; color:var(--faint); vertical-align:baseline; flex:none}
+  .desc{margin:0; font-size:13.6px; color:var(--ink2); line-height:1.6}
+  .benefit{font-size:13px; color:var(--ink2); background:rgba(58,214,176,.055); border:1px solid rgba(58,214,176,.16); border-radius:9px; padding:9px 11px; line-height:1.55}
+  .benefit b{display:block; font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--teal); margin-bottom:3px; font-weight:600}
+  .badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:auto; padding-top:4px}
+  .b{font-size:11.5px; font-weight:500; padding:4px 9px; border-radius:7px; border:1px solid var(--line2); color:var(--ink2); background:var(--panel); white-space:nowrap; display:inline-flex; align-items:center; gap:5px}
+  .b.cost-free{color:var(--must); border-color:rgba(54,224,160,.3); background:rgba(54,224,160,.07)}
+  .b.cost-paid{color:#ffb1b1; border-color:rgba(255,107,107,.3); background:rgba(255,107,107,.07)}
+  .b.cost-freemium{color:var(--should); border-color:rgba(255,200,87,.28); background:rgba(255,200,87,.06)}
+  .b.eff-low{color:#bdeede} .b.eff-high{color:#ffc1c1}
+  .b.il-yes{color:var(--cyan); border-color:rgba(106,208,255,.3); background:rgba(106,208,255,.06)}
+  .b.il-no{color:#ff8f8f; border-color:rgba(255,107,107,.3); background:rgba(255,107,107,.07)}
+  .b.warn{color:#ff9b9b}
+
+  /* ---------- TOP PICKS ---------- */
+  .picks-band{margin-bottom:40px}
+  .picks-title{display:flex; align-items:center; gap:12px; margin:0 0 16px}
+  .picks-title h2{font-family:"Frank Ruhl Libre",serif; font-weight:900; font-size:clamp(22px,3.4vw,32px); margin:0}
+  .picks-title .sub{font-size:13.5px; color:var(--muted)}
+  .picks{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:13px}
+  .pick{position:relative; display:flex; gap:14px; padding:16px 16px 15px; border:1px solid var(--line2); border-radius:var(--rs); background:
+     radial-gradient(120px 120px at 100% 0,rgba(58,214,176,.10),transparent 70%),var(--bg2); transition:transform .18s,box-shadow .18s}
+  .pick:hover{transform:translateY(-3px); box-shadow:var(--shadow)}
+  .pick .rank{flex:none; width:38px; height:38px; border-radius:11px; display:grid; place-items:center; font-family:"Frank Ruhl Libre",serif; font-weight:900; font-size:19px; color:#06140f; background:linear-gradient(135deg,var(--teal),var(--cyan)); box-shadow:0 6px 18px -6px var(--glow)}
+  .pick h3{margin:1px 0 5px; font-size:15.5px; font-weight:700; line-height:1.32}
+  .pick h3 a{text-decoration:none}
+  .pick h3 a:hover{color:var(--teal)}
+  .pick p{margin:0 0 9px; font-size:13px; color:var(--ink2); line-height:1.55}
+  .pick .badges{margin-top:0}
+
+  /* legend + footer */
+  .legend{display:flex; flex-wrap:wrap; gap:18px; margin-top:8px; padding:16px 20px; border:1px dashed var(--line2); border-radius:var(--rs); font-size:12.5px; color:var(--muted); background:var(--panel)}
+  .legend .li{display:flex; align-items:center; gap:7px}
+  .legend .sw{width:11px;height:11px;border-radius:3px}
+  footer{position:relative; z-index:1; border-top:1px solid var(--line); padding:30px 0 60px; color:var(--faint); font-size:13px}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:14px; justify-content:space-between; align-items:center}
+  footer code{font-family:"JetBrains Mono",monospace; color:var(--muted)}
+  .empty{display:none; text-align:center; padding:60px 20px; color:var(--muted)}
+  .empty.show{display:block}
+
+  /* entrance animation */
+  @media (prefers-reduced-motion:no-preference){
+    .reveal{opacity:0; transform:translateY(14px); animation:rise .6s cubic-bezier(.2,.7,.2,1) forwards}
+    @keyframes rise{to{opacity:1; transform:none}}
+  }
+  @media (prefers-reduced-motion:reduce){ .radar .sweep{animation:none} .eyebrow .dot{animation:none} }
+
+  @media (max-width:640px){
+    .sec-tools .n{display:none}
+    .stat{flex-basis:calc(50% - 6px); min-width:0}
+    .count{width:100%; margin-inline-start:0; order:5}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="radar" viewBox="0 0 200 200" aria-hidden="true" fill="none">
+    <defs>
+      <radialGradient id="rg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#3ad6b0" stop-opacity="0"/>
+        <stop offset="85%" stop-color="#3ad6b0" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#3ad6b0" stop-opacity=".25"/>
+      </radialGradient>
+      <linearGradient id="sw" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#3ad6b0" stop-opacity=".55"/>
+        <stop offset="100%" stop-color="#3ad6b0" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <circle cx="100" cy="100" r="92" stroke="#3ad6b0" stroke-opacity=".30"/>
+    <circle cx="100" cy="100" r="66" stroke="#3ad6b0" stroke-opacity=".22"/>
+    <circle cx="100" cy="100" r="40" stroke="#3ad6b0" stroke-opacity=".18"/>
+    <circle cx="100" cy="100" r="14" stroke="#3ad6b0" stroke-opacity=".5"/>
+    <line x1="100" y1="6" x2="100" y2="194" stroke="#3ad6b0" stroke-opacity=".14"/>
+    <line x1="6" y1="100" x2="194" y2="100" stroke="#3ad6b0" stroke-opacity=".14"/>
+    <g class="sweep"><path d="M100 100 L100 8 A92 92 0 0 1 178 62 Z" fill="url(#sw)"/></g>
+    <circle cx="100" cy="100" r="92" fill="url(#rg)"/>
+  </svg>
+  <div class="wrap" style="position:relative">
+    <span class="eyebrow"><span class="dot"></span>תדריך מחקר · צד-לקוח · ישראל</span>
+    <h1 id="headline">…</h1>
+    <p class="lede" id="lede">…</p>
+    <p class="gen-note" id="gennote"></p>
+    <div class="stats" id="stats"></div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <label class="search">
+      <input id="q" type="search" placeholder="חיפוש כלי, מקור או פיצ'ר…" aria-label="חיפוש">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </label>
+    <div class="chips" id="pri-chips">
+      <button class="chip pri-must" data-pri="must" aria-pressed="true">חובה</button>
+      <button class="chip pri-should" data-pri="should" aria-pressed="true">מומלץ</button>
+      <button class="chip pri-could" data-pri="could" aria-pressed="true">אופציונלי</button>
+    </div>
+    <div class="chips">
+      <button class="chip" id="free-only" aria-pressed="false">רק חינמי</button>
+      <button class="chip" id="il-only" aria-pressed="false">כיסוי ישראל</button>
+      <button class="chip" id="toggle-all" aria-pressed="true">כווץ הכל</button>
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="picks-band reveal" id="picks-band">
+    <div class="picks-title">
+      <h2>המובחרים — תועלת מול מאמץ</h2>
+      <span class="sub" id="picks-sub"></span>
+    </div>
+    <div class="picks" id="picks"></div>
+  </section>
+
+  <div id="sections"></div>
+  <div class="empty" id="empty">לא נמצאו תוצאות לסינון הנוכחי. נסה לאפס את החיפוש או הפילטרים.</div>
+
+  <div class="legend" id="legend">
+    <span class="li"><span class="sw" style="background:var(--must)"></span> חובה — תועלת/מאמץ מצוין</span>
+    <span class="li"><span class="sw" style="background:var(--should)"></span> מומלץ</span>
+    <span class="li"><span class="sw" style="background:var(--could)"></span> אופציונלי</span>
+    <span class="li"><span class="sw" style="background:var(--cyan)"></span> כיסוי ישראל מאומת</span>
+    <span class="li"><span class="sw" style="background:var(--no)"></span> אזהרה / אין כיסוי / חוסם CORS</span>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>נוצר ע"י צוות סוכני מחקר אוטונומי · 8 סוכני סריקה + ביקורת פערים + סינתזה · 129 ממצאים גולמיים → <span id="f-items">—</span> כלים מסוננים.</span>
+    <code>antenna-los · docs/ideas</code>
+  </div>
+</footer>
+
+<script id="report-data" type="application/json">{
+  "headlineHe": "מפת דרכים לשדרוג כלי תכנון קו-הראייה (LOS) לאנטנות בישראל — דיוק גובה, פיזיקת RF, מקורות ישראליים ופיצ'רים, הכל בצד-לקוח",
+  "summaryHe": "מתוך 129 ממצאים גולמיים זוקקנו אוסף ממוקד של שדרוגים שמתאימים לארכיטקטורה הסטטית של האפליקציה (vanilla JS + Leaflet על GitHub Pages, ללא backend). הדגש הוא על מקורות חינמיים ללא מפתח עם CORS תקין וכיסוי ישראל. השיפורים המשמעותיים ביותר: מעבר למקור גובה Copernicus GLO-30 דרך Mapterhorn (drop-in), הוספת שכבות מבנים וצמחייה לחסימת LOS אמיתית, הפיכת בדיקת הפרנל הבינארית למודל RF מלא עם תקציב קישור ודעיכת גשם לפי ITU, ושכבות מידע ממשלתיות ישראליות (data.gov.il, GovMap) שנגישות ישירות מהדפדפן. במקביל סימנו במפורש מקורות שאינם מכסים ישראל או חסרי CORS, כדי לחסוך זמן פיתוח מבוזבז.",
+  "generatedNote": "נוצר ע\"י צוות סוכני מחקר — 129 ממצאים גולמיים, סוננו, אוחדו ואורגנו לדוח אחד ישר וכן",
+  "topPicks": [
+    { "name": "Mapterhorn terrain tiles (Copernicus GLO-30, קידוד Terrarium)", "whyHe": "שדרוג דיוק הגובה ביחס תועלת/מאמץ הגבוה ביותר: החלפת שורת URL אחת בלבד מ-AWS Terrarium ל-Mapterhorn, ללא שינוי בלוגיקת הדגימה כי הקידוד זהה. מקבלים DSM של Copernicus GLO-30, נקי ומדויק מ-SRTM הישן, חינם, ללא מפתח, CORS תקין, כיסוי מלא של ישראל.", "effort": "low", "cost": "free-no-key", "url": "https://tiles.mapterhorn.com/tilejson.json" },
+    { "name": "data.gov.il — אנטנות סלולריות פעילות (CKAN datastore_search)", "whyHe": "מאגר ממשלתי של ~8,400 אתרי שידור פעילים בישראל עם קואורדינטות, נגיש ישירות מהדפדפן (Access-Control-Allow-Origin: *). מספק נקודות עוגן אמיתיות לתכנון LOS ושכבת אנטנות קיימות, ללא שרת וללא מפתח.", "effort": "low", "cost": "free-no-key", "url": "https://data.gov.il/dataset/antennaactive" },
+    { "name": "תקציב קישור מלא (FSPL + EIRP + fade margin, ITU-R P.525/P.341)", "whyHe": "הופך את האפליקציה מ'יש/אין קו ראייה' לכלי הנדסי שמכריע אם הקישור באמת יעבוד וכמה dB מרווח יש. אריתמטיקה פשוטה ב-JS שמחברת את כל שאר החישובים למספר אחד מכריע. ערך עצום במאמץ נמוך.", "effort": "low", "cost": "free-no-key", "url": "https://rftools.io/calculators/rf/rf-link-budget/" },
+    { "name": "OSM masts/towers + building height דרך Overpass (ישראל)", "whyHe": "אותה תשתית Overpass שכבר בשימוש לכבישים: 347 תרנים/מגדלים אמיתיים כמועמדי קצה, וגובה מבנים (height/building:levels) לחסימת LOS עירונית שה-DEM לבדו מפספס. אפס תלות חדשה.", "effort": "medium", "cost": "free-no-key", "url": "https://wiki.openstreetmap.org/wiki/Tag:man_made%3Dcommunications_tower" },
+    { "name": "מאתר ממסר/relay אוטומטי בין שתי נקודות שאין ביניהן LOS", "whyHe": "פיצ'ר-דגל ייחודי שאין לו מקבילה חינמית בדפדפן: כשקישור A→B חסום, סורק פסגות באליפסה בין הנקודות ומציע אתר ממסר שרואה את שניהם. מנצל ישירות את מנוע הסריקה הלאומית והפיזיקה הקיימים.", "effort": "high", "cost": "free-no-key", "url": "https://en.wikipedia.org/wiki/Passive_repeater" },
+    { "name": "מיטוב גובה תורן מינימלי (minimum mast height)", "whyHe": "במקום שהמשתמש ינחש גבהים, חיפוש בינארי מחזיר 'תורן 12מ' בצד A יפתח את הקו'. הופך תשובת 'חסום' לפתרון רכיש וקונקרטי. מנצל את חישוב המרווח-הקריטי הקיים — מימוש זול.", "effort": "medium", "cost": "free-no-key", "url": "https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.530-18-202109-S!!TOC-HTM-E.htm" },
+    { "name": "Meta + WRI Canopy Height v2 (1m, גובה צמחייה) עם pre-bake לישראל", "whyHe": "מוסיף חסימת LOS ע\"י עצים/חורש מעבר לטופוגרפיה — קריטי ביערות הכרמל/מירון/קק\"ל. מדויק (R²=0.86). הבאקט חסר CORS, ולכן הדרך הנקייה: חיתוך אזור ישראל מראש (~מגהבייטים בודדים) לריפו Pages, same-origin, ללא פרוקסי.", "effort": "high", "cost": "free-no-key", "url": "https://registry.opendata.aws/dataforgood-fb-forestsv2/" },
+    { "name": "דעיכת גשם וזמינות לפי ITU (P.837 R0.01 + P.838 + P.530) עם נתון חתוך-מראש לישראל", "whyHe": "מעל ~10GHz גשם החורף בישראל מפיל קישורים. חיתוך רשת R0.01 לישראל לקובץ JSON זעיר (~עשרות KB) בריפו, יחד עם נוסחאות P.838/P.530, נותן זמינות אחוזית אמיתית (99.99%) — מבדל את הכלי ממחשבוני LOS פשוטים.", "effort": "medium", "cost": "free-no-key", "url": "https://www.itu.int/rec/R-REC-P.837/en" },
+    { "name": "כיוון אנטנה צפון-אמת מול מגנטי (geomagnetism / WMM2025)", "whyHe": "אנטנות מכוונים במצפן מגנטי אך האזימוט המחושב הוא צפון-אמת; בישראל הסטייה כ-+5°. ספריית JS טהורה ללא מפתח שממירה אוטומטית ומונעת טעות התקנה של 5°.", "effort": "low", "cost": "free-no-key", "url": "https://github.com/naturalatlas/geomagnetism" },
+    { "name": "Permalink משותף (מצב מקודד ב-URL עם LZ-String)", "whyHe": "שמירה ושיתוף של תרחיש LOS שלם בלינק אחד (וואטסאפ/מייל), וגם 'שמירת פרויקט' חינמית. קריטי לאפליקציה ללא שרת וללא חשבונות, תואם מושלם ל-GitHub Pages.", "effort": "low", "cost": "free-no-key", "url": "https://github.com/pieroxy/lz-string" },
+    { "name": "ייצוא KML/KMZ של הקישור, פרנל וכיסוי (צד-לקוח)", "whyHe": "KML הוא XML פשוט שניתן לבנות לחלוטין בדפדפן. מחבר את הכלי לזרימת העבודה של אנשי שטח: פתיחה ב-Google Earth/QGIS, טעינה ל-GPS. אפס שרת, מתאים ל-static hosting.", "effort": "low", "cost": "free-no-key", "url": "http://www.heywhatsthat.com/techfaq.html" },
+    { "name": "Esri World Imagery basemap (תצלומי לוויין, XYZ ללא מפתח)", "whyHe": "שכבת אורתופוטו ברזולוציה גבוהה לישראל, ללא מפתח, עם CORS, בשורת tileLayer אחת. מאפשרת לראות בינוי/צמחייה/מכשולים מתחת לקווי ה-LOS ולאמת ידנית אם הנתיב פנוי.", "effort": "low", "cost": "free-no-key", "url": "https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" }
+  ],
+  "sections": [
+    {
+      "id": "elevation-accuracy",
+      "titleHe": "שיפור דיוק הגובה (DEM/DSM)",
+      "introHe": "ליבת חישוב ה-LOS היא פרופיל הגובה. כאן השדרוגים שמשפרים את מקור הגובה עצמו — החל מהחלפת-תקע כמעט-חינמית של מקור ה-Terrarium הנוכחי ועד מקורות איכותיים יותר שדורשים פתרון CORS.",
+      "items": [
+        { "name": "Mapterhorn terrain tiles (tiles.mapterhorn.com)", "kind": "data-source", "descHe": "אריחי טופוגרפיה גלובליים מבית Oliver Wipfli (לשעבר MapLibre) על Cloudflare R2, מבוססי Copernicus GLO-30, מקודדים בפורמט Terrarium (זהה לשימוש הנוכחי), webp 512px. Endpoint: https://tiles.mapterhorn.com/{z}/{x}/{y}.webp.", "benefitHe": "החלפת מקור הגובה בשורת URL אחת ללא שינוי בלוגיקת הדגימה — מקבלים גובה Copernicus GLO-30 מדויק ונקי יותר מ-SRTM/Terrarium הישן, ישירות משפר את פרופיל הקרקע, תיקון 4/3 ובדיקת מסדרון פרנל.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://tiles.mapterhorn.com/tilejson.json", "priority": "must" },
+        { "name": "geotiff.js — קריאת COG בדפדפן עם HTTP Range", "kind": "library", "descHe": "ספריית JS טהורה לקריאת GeoTIFF/COG ישירות בדפדפן. fromUrl פותח קובץ דרך בקשות Range בלי להוריד את כולו; readRasters({window:[px,py,px+1,py+1]}) קורא ערך פיקסל בודד. ממירים lat/lng→פיקסל עם getOrigin()/getResolution(). Pool מעביר פענוח ל-Web Workers.", "benefitHe": "אבן הבניין הטכנית לקריאת ערכי גובה אמיתיים מ-COG ענן (Copernicus GLO-30) בלי שרת — לכל נקודת דגימה בפרופיל ה-LOS קוראים פיקסל יחיד. מאפשר גם דגימת overview ברזולוציה נמוכה לסריקה ארצית מהירה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://github.com/geotiffjs/geotiff.js/", "priority": "must" },
+        { "name": "Copernicus DEM GLO-30 (COG על AWS Open Data)", "kind": "data-source", "descHe": "DSM גלובלי ~30מ' כ-COG ב-EPSG:4326, יחידות מטרים, אריחי 1x1 מעלה. תבנית שם מאומתת: Copernicus_DSM_COG_10_N32_00_E035_00_DEM.tif. אזהרה מאומתת: באקט copernicus-dem-30m אינו מחזיר Access-Control-Allow-Origin ו-OPTIONS preflight מחזיר 403 — קריאה ישירה מהדפדפן תיחסם.", "benefitHe": "מקור גובה איכותי לפרופיל LOS מדויק. בגלל היעדר CORS, השימוש המעשי הוא דרך Mapterhorn (שמגיש את אותו GLO-30 עם CORS), דרך titiler.xyz, או mirror של OpenTopography — ולא קריאה ישירה מהדפדפן.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "high", "israelCoverage": "yes", "url": "https://registry.opendata.aws/copernicus-dem/", "priority": "should" },
+        { "name": "titiler.xyz — פרוקסי COG ציבורי עם CORS", "kind": "api", "descHe": "שירות TiTiler ציבורי (Development Seed) שקורא כל COG דרך ?url= בצד-שרת ומחזיר מטא/אריחים/ערך-נקודה עם CORS פעיל (access-control-allow-origin מאומת). endpoint /cog/point/{lon},{lat}?url= מחזיר ערך גובה לנקודה.", "benefitHe": "הדרך הריאלית לנצל את Copernicus GLO-30 / WorldCover מאפליקציה סטטית בלי שרת משלכם — עוקפים את היעדר ה-CORS בדלי AWS. אזהרה: שירות ציבורי ללא SLA/הגבלת קצב מובטחת — מתאים לפיתוח/דמו ולנפחים נמוכים; לפרודקשן עדיף TiTiler/Worker משלכם.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://titiler.xyz/api.html", "priority": "should" },
+        { "name": "Cloudflare Worker כפרוקסי CORS ל-COG", "kind": "technique", "descHe": "Worker חינמי (עד ~100K בקשות/יום) שמעביר את בקשת ה-Range לדלי AWS של Copernicus/WorldCover/Canopy ומחזיר אותה בתוספת Access-Control-Allow-Origin ו-Access-Control-Expose-Headers: Content-Range, Accept-Ranges (חובה כדי ש-geotiff.js יבצע partial reads).", "benefitHe": "פותר נקודתית את חסם ה-CORS של הבאקטים בלי לוותר על קריאת פיקסלים בדפדפן ועם שליטה מלאה (בלי תלות בשירות צד-שלישי). פריסה קלה התואמת לארכיטקטורה הסטטית.", "cost": "free", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://developers.cloudflare.com/workers/examples/cors-header-proxy/", "priority": "should" },
+        { "name": "OpenTopography S3 (sdsc.edu) — mirror של COP30 עם CORS", "kind": "data-source", "descHe": "דלי S3 של OpenTopography ב-SDSC שמארח COP30. אומת: מחזיר Access-Control-Allow-Origin ו-Expose-Headers הכוללים Content-Range/Accept-Ranges (בניגוד לדלי copernicus-dem-30m). אומת VRT ב-COP30_hh.vrt (206). חיסרון: רשימת הדלי חסומה, ונתיב אריח COG בודד מדויק לא אומת — דורש פענוח ה-VRT לפני שימוש.", "benefitHe": "מועמד אמיתי ל-mirror של GLO-30 עם CORS שמאפשר geotiff.js ישיר בלי פרוקסי — בדיוק החסם שמונע שימוש בדלי AWS המקורי. דורש אימות נתיב אריח מדויק.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://opentopography.s3.sdsc.edu/raster/COP30/COP30_hh.vrt", "priority": "could" },
+        { "name": "ALOS World 3D AW3D30 v4.1 (JAXA, 30m DSM)", "kind": "data-source", "descHe": "DSM גלובלי ~30מ' של JAXA, גרסה 4.1 (2024). הורדה ישירה דורשת הרשמה, אך זמין נוח דרך OpenTopography (demtype=AW3D30, ללא מפתח).", "benefitHe": "מקור DSM עצמאי נוסף לאימות-צולב מול Copernicus GLO-30 — כששני מקורות תואמים, הביטחון בחישוב קו-הראייה עולה. עדיף לצרוך דרך OpenTopography.", "cost": "free", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/aw3d30_e.htm", "priority": "could" },
+        { "name": "AWS Terrarium (המקור הנוכחי) — סטטוס", "kind": "data-source", "descHe": "המקור הקיים: אריחי Terrarium ~30מ' (בעיקר SRTM) ב-elevation-tiles-prod, ללא מפתח. נבדק: אין הכרזת deprecation — המאגר עדיין פעיל. אך לא מעודכן שנים ואיכותו נחותה מ-Copernicus GLO-30.", "benefitHe": "טוב לדעת שהמקור יציב ולא ייעלם — אין דחיפות חירום. עם זאת מומלץ לעבור ל-Mapterhorn (אותו קידוד, GLO-30) כשדרוג כמעט-חינם, אפשר להחזיק כ-fallback.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://registry.opendata.aws/terrain-tiles/", "priority": "could" }
+      ]
+    },
+    {
+      "id": "buildings-vegetation-clutter",
+      "titleHe": "מבנים, צמחייה וקלאטר (חסימת LOS מעבר לקרקע)",
+      "introHe": "כיום הפיזיקה מתחשבת רק בקרקע ובכדוריות, אבל בעיר בניין ובחורש עץ חוסמים LOS גם כשהקרקע פנויה. כאן מקורות וטכניקות להוספת גובה מבנים, גובה צמחייה וכיסוי-קרקע (clutter) לפרופיל.",
+      "items": [
+        { "name": "OSM Overpass — גובה מבנים (height / building:levels)", "kind": "data-source", "descHe": "תגיות height ו-building:levels נשלפות דרך Overpass בשאילתת bbox (CORS פתוח, כבר בשימוש לכבישים). כיסוי גבוה בערים גדולות (ת\"א, ירושלים, חיפה), דליל ביישובים קטנים.", "benefitHe": "התוספת המשמעותית ביותר לדיוק LOS עירוני: הזרקת גובה מבנים כמכשולים לאורך הקו מזהה חסימות אמיתיות בין אנטנות בסביבה בנויה ובודקת נכון את מסדרון פרנל מעל גגות. אפס תלות חדשה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "partial", "url": "https://wiki.openstreetmap.org/wiki/Key:height", "priority": "must" },
+        { "name": "Meta + WRI Canopy Height v2 / CHMv2 (1m, DINOv3)", "kind": "data-source", "descHe": "מפת גובה צמרות גלובלית 1מ' (2026, מודל DINOv3), דיוק R²=0.86, פורמט COG בבאקט dataforgood-fb-data, רישיון CC-BY 4.0 (כולל מסחרי). אומת: אין כותרות CORS — fetch ישיר ייחסם; Range נתמך (206).", "benefitHe": "חסימת LOS ע\"י עצים/חורש מעבר לטופוגרפיה — מהותי ביערות ישראל (כרמל, מירון, קק\"ל), פרדסים ומטעים, כי טעות של מטרים בגובה עץ הופכת קישור 'עובר' ל'חסום' במרווח 60% של פרנל. גישה דרך pre-bake או פרוקסי.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "high", "israelCoverage": "yes", "url": "https://registry.opendata.aws/dataforgood-fb-forestsv2/", "priority": "must" },
+        { "name": "Pre-bake של אריחי ישראל לריפו (DEM/Canopy/WorldCover)", "kind": "technique", "descHe": "טכניקה: בגלל היעדר CORS בבאקטי Meta/WRI/ESA, חולצים מראש (build-time עם GDAL) רק את שטח ישראל מתוך ה-COG, ממירים לרשת אריחים קטנה (PNG בקידוד Terrarium-RGB או COG מוקטן), ומעלים לריפו GitHub Pages עצמו — same-origin.", "benefitHe": "פתרון ה-CORS הנקי ביותר לאפליקציה סטטית: ישראל קטנה (~22,000 קמ\"ר), בקידוד 10–30מ' מדובר במגהבייטים בודדים. קוד הדגימה הקיים (פענוח גובה מפיקסל) חוזר כמעט as-is, ביצועים מעולים, עצמאות מלאה משירות חיצוני.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "yes", "url": "https://gdal.org/programs/gdal_translate.html", "priority": "must" },
+        { "name": "ESA WorldCover 2021 v200 (10m land cover, COG על S3)", "kind": "data-source", "descHe": "מפת כיסוי-קרקע גלובלית 10מ', 11 מחלקות, COG ב-EPSG:4326. תבנית מאומתת: .../v200/2021/map/ESA_WorldCover_10m_2021_v200_{TILE}_Map.tif (N30E033, N33E033 מכסים את ישראל). אומת: HTTP 200, Range נתמך (206), אך הבאקט חסר CORS.", "benefitHe": "מקור הקלאטר/צמחייה: כל פיקסל אומר אם המסלול עובר מעל יער/בנייה/שטח חשוף. ממירים מחלקה ל'גובה קלאטר מייצג' ומזינים ל-P.2108 או לתיקון גובה מסוף במקום להניח LOS חופשי. גישה דרך Terrascope WMTS (תצוגה) או pre-bake/פרוקסי (חישוב).", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "high", "israelCoverage": "yes", "url": "https://registry.opendata.aws/esa-worldcover-vito/", "priority": "must" },
+        { "name": "ESA WorldCover — טבלת לגנדה (11 מחלקות → גובה קלאטר)", "kind": "technique", "descHe": "טבלת המרה v200: 10=Tree cover, 20=Shrubland, 30=Grassland, 40=Cropland, 50=Built-up, 60=Bare/sparse, 80=Water וכו'. ממפים ערך פיקסל לגובה מייצג (Built-up≈15-20מ', Tree≈15מ', Cropland≈3מ', Bare/Grass=0, Water=0).", "benefitHe": "הטבלה שמניעה את לוגיקת הקלאטר client-side: לכל נקודת דגימה מוסיפים offset גובה לפי המחלקה ואז בודקים אם 60% מפרנל פנוי מעליו, או מוסיפים אובדן P.2108. לישראל רלוונטיים בעיקר 50/10/20/30/40/60.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200", "priority": "must" },
+        { "name": "Terrascope WMTS v2 — WorldCover עם CORS", "kind": "api", "descHe": "WMTS רשמי של VITO/Terrascope המגיש את WorldCover כאריחי תמונה. אומת: GetCapabilities מחזיר 200, ועם Origin של ה-Pages מחזיר access-control-allow-origin תואם. שכבת 2021: esa-worldcover-map-10m-2021-v2_map. (ה-WMS הישן מוצא משימוש בינואר 2026 — להעדיף WMTS v2.)", "benefitHe": "הדרך המעשית להציג כיסוי-קרקע כשכבת Leaflet בלי לפתור CORS של S3 ובלי פרוקסי. הערה: תמונה צבועה ולא ערכי פיקסל גולמיים — מצוין לתצוגה, פחות לחישוב המספרי (לחישוב עדיף לקרוא את ה-COG).", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "yes", "url": "https://docs.terrascope.be/Developers/WebServices/OGC/WMTSv2.html", "priority": "should" },
+        { "name": "Microsoft Global ML Building Footprints (כולל גבהים)", "kind": "data-source", "descHe": "~1.4 מיליארד מבני ML מתצלומי לוויין, ~225M עם הערכת גובה, רישיון CDLA-Permissive-2.0. line-delimited GeoJSON דחוס לפי country+quadkey, הורדה ישירה מ-Azure ללא מפתח. הופעת 'ישראל' באינדקס לא אומתה חד-משמעית.", "benefitHe": "כיסוי מבנים רחב יותר מ-OSM באזורים דלילים, להעשרת בדיקת LOS עירונית. בגלל גודל הקבצים — לא לקריאה חיה אלא pre-process: חיתוך quadkeys של ישראל פעם אחת ל-GeoJSON קל וטעינת אזור-העניין בלבד.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "unknown", "url": "https://github.com/microsoft/GlobalMLBuildingFootprints", "priority": "should" },
+        { "name": "ETH Global Canopy Height 2020 (10m, Lang et al.)", "kind": "data-source", "descHe": "מפת גובה צמרות 10מ' לשנת 2020 מ-ETH ציריך, עם שכבת סטיית-תקן (אי-ודאות), COG, CC-BY 4.0. הורדה מאחורי הפניית DOI של ETH, CORS לא מובטח.", "benefitHe": "חלופה/גיבוי ל-Meta כשמספיקה רזולוציה 10מ' (תואמת היטב ל-DEM 30מ'). היתרון הייחודי: שכבת אי-ודאות מאפשרת להציג 'רמת ביטחון' בחסימת צמחייה. עדיף pre-bake לישראל.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://langnico.github.io/globalcanopyheight/", "priority": "should" },
+        { "name": "Overture Maps — Buildings theme (GeoParquet + DuckDB-WASM)", "kind": "data-source", "descHe": "מאגר מבנים מאוחד (OSM + Microsoft + ועוד), GeoParquet ב-S3/Azure, כולל height/roof_height/קומות. ניתן לתשאל ישירות בדפדפן עם DuckDB-WASM (קורא מטא ואז רק מבנים בתוך bbox).", "benefitHe": "מאחד יתרונות OSM ו-Microsoft בסכמה אחידה לגובה מבנים, כיסוי ישראל. דפוס DuckDB-WASM שולף רק מבנים סביב האנטנות/לאורך הקו ללא backend. מאמץ גבוה (שילוב DuckDB-WASM + SQL).", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://docs.overturemaps.org/guides/buildings/", "priority": "could" },
+        { "name": "NASA GEDI L2A — גובה צמרת footprint (~25m, לכיול בלבד)", "kind": "data-source", "descHe": "מדידות לידאר חלליות (ISS), rh100 ברמת footprint ~25מ', כיסוי ישראל. נתוני ground-truth שעליהם אומנו Meta/ETH. פורמט HDF5 (לא COG), דורש NASA Earthdata login (403 ללא הרשאה).", "benefitHe": "לא מתאים כשכבת רקע רציפה (footprints דלילים, HDF5 כבד). הערך: אימות/כיול נקודתי שמפת הצמחייה הרציפה סבירה לאזורים ספציפיים. עיבוד offline בלבד.", "cost": "free", "apiKeyNeeded": true, "corsOk": "no", "effort": "high", "israelCoverage": "yes", "url": "https://registry.opendata.aws/nasa-gedi02a/", "priority": "could" },
+        { "name": "Google Open Buildings 2.5D — אין כיסוי ישראל (לא להשתמש)", "kind": "competitor-insight", "descHe": "מאגר מבנים+גבהים מצוין טכנית (~4מ', CC-BY-4.0), אך הכיסוי מוגבל ל-Global South (אפריקה, דרום/דרום-מזרח אסיה, אמריקה הלטינית). ישראל והמזרח התיכון אינם נכללים.", "benefitHe": "מתועד כדי לא לבזבז זמן: חסר-תועלת לאפליקציה כי אין כיסוי לישראל. לגבהי מבנים בישראל יש להישען על OSM/Microsoft/Overture.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "low", "israelCoverage": "no", "url": "https://sites.research.google/gr/open-buildings/temporal/", "priority": "could" },
+        { "name": "EUBUCCO — אין כיסוי ישראל (לא להשתמש)", "kind": "competitor-insight", "descHe": "מסד נתונים מדעי של ~322M מבנים עם גובה/קומות, אך אך ורק 27 מדינות האיחוד האירופי + נורבגיה/שווייץ/בריטניה. ישראל אינה כלולה.", "benefitHe": "מתועד כ-dead-end: איכותי לאירופה, ללא כיסוי לישראל. להעדיף OSM/Microsoft/Overture.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "low", "israelCoverage": "no", "url": "https://eubucco.com/", "priority": "could" }
+      ]
+    },
+    {
+      "id": "rf-physics-link-budget",
+      "titleHe": "פיזיקת RF ותקציב קישור",
+      "introHe": "שדרוג מבדיקת פרנל בינארית ('עובר/חסום') למודלים תקניים של ITU שמחזירים הנחתה ב-dB ותקציב קישור מלא. כל הנוסחאות הן אריתמטיקה סגורה שרצה בדפדפן על הפרופיל שכבר נדגם, ללא תלות חיצונית.",
+      "items": [
+        { "name": "תקציב קישור מלא: FSPL + EIRP + fade margin (P.525/P.341)", "kind": "technique", "descHe": "FSPL=32.44+20·log10(f_MHz)+20·log10(d_km); EIRP=Ptx+Gtx−הפסדי כבל; Prx=EIRP−FSPL−diffraction−atmos+Grx; fade margin=Prx−רגישות מקלט. כלל אצבע: 10dB≈95%, 15dB≈99% זמינות.", "benefitHe": "הופך את האפליקציה מ'יש/אין קו ראייה' לכלי הנדסי שמכריע אם הקישור עובד ובכמה dB מרווח. מחבר את כל שאר המודלים (FSPL+עקיפה+גשם+גזים) למספר אחד, ומאפשר לצבוע קישור ירוק/כתום/אדום לפי המרווח. ערך עצום, מימוש קל.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.525-4-201908-S!!PDF-E.pdf", "priority": "must" },
+        { "name": "עקיפה מעל מכשול בודד — ITU-R P.526 knife-edge", "kind": "technique", "descHe": "פרמטר Fresnel-Kirchhoff v=h·sqrt(2/λ·(1/d1+1/d2)); הנחתה בקירוב Lee ל-v>−0.78: J(v)≈6.9+20·log10(sqrt((v−0.1)²+1)+v−0.1) dB. עשרות שורות JS על הפרופיל הקיים.", "benefitHe": "במקום 'פנוי/חסום' בינארי, מספר מדויק בדציבלים של ההנחתה מעל כל גבעה שחודרת לקו — מאפשר להחליט אם קישור 'גבולי' עדיין שמיש. מתאים מושלם לפרופיל שכבר נדגם.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.526-15-201910-I!!PDF-E.pdf", "priority": "must" },
+        { "name": "דירוג פינוי פרנל + רדיוס-כדור אפקטיבי ניתן-לכוונון (k)", "kind": "technique", "descHe": "שדרוג של הקיים: במקום בדיקת 60% בינארית, לדרג את אחוז פינוי פרנל הראשון בכל נקודה (F1=sqrt(λ·d1·d2/(d1+d2))) ולצבוע את המסלול לפי חומרת החדירה. לאפשר כיוונון k (4/3 ברירת מחדל, k=2/3 ל-sub-refraction גרוע).", "benefitHe": "מנצל את הפיזיקה והפרופיל הקיימים ללא נתונים חדשים. גרף פינוי צבעוני (ירוק/צהוב/אדום) נותן תמונה עשירה מ'עובר/נכשל', ובחירת k מאפשרת בדיקת הקו בתנאי מזג-אוויר גרועים — חשוב לאמינות.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.530-18-202109-S!!TOC-HTM-E.htm", "priority": "must" },
+        { "name": "עקיפת רב-מכשולים — Deygout / Bullington (P.526)", "kind": "technique", "descHe": "שרשור מספר מכשולים: Deygout מוצא את המכשול הדומיננטי (v מקסימלי), מחשב הנחתה, וחוזר רקורסיבית על שני התת-מסלולים (ITU מגביל ל-3 קצוות + תיקון); Bullington בונה מכשול שקול יחיד. שתיהן על אותה נוסחת knife-edge.", "benefitHe": "מסלולים אמיתיים בישראל (רכסי הכרמל, הרי יהודה) חוצים כמה גבעות, לא אחת. Deygout נותן אומדן הנחתה כולל ריאליסטי לאורך הפרופיל הקיים, וזול חישובית — מתאים לסריקה הלאומית.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://its.ntia.gov/publications/download/TR-26-580.pdf", "priority": "must" },
+        { "name": "דעיכת גשם וזמינות — P.838 (k,α) + P.530 (path reduction)", "kind": "technique", "descHe": "γR=k·R^α dB/km (מקדמי P.838 לפי תדר/קיטוב), כפול מרחק אפקטיבי deff=d·r (גורם r מ-P.530, r≤2.5), הצלבה מול R0.01 נותנת אחוז זמינות שנתי. כל המקדמים טבלאות קטנות ב-JS. תקף 1-100GHz עד ~60 ק\"מ.", "benefitHe": "מעל ~10GHz גשם הוא הגורם הדומיננטי, ובישראל יש עונת גשמים חזקה. מראה לכל band כמה dB גשם 'אוכל' מהמרווח וכמה תשעיות זמינות נשארות — מאפשר לבחור בין 5GHz (אטום לגשם) ל-24GHz מהיר-אך-רגיש. החלטת תכנון מרכזית שהאפליקציה כיום לא נוגעת בה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "partial", "url": "https://www.itu.int/rec/R-REC-P.530/en", "priority": "should" },
+        { "name": "אובדן קלאטר — ITU-R P.2108-1 (Annex 1, sec 3.2)", "kind": "technique", "descHe": "שלוש שיטות: Height-Gain Terminal Correction (מסוף נמוך בתוך clutter עד ~6מ'), Terrestrial Statistical Model (אובדן אחוזוני לפי תדר/מרחק), ו-Aeronautical. נוסחאות סגורות קצרות הניתנות למימוש ב-JS. מימושי ייחוס: NTIA/p2108, eeveetza/p2108, crc-covlib.", "benefitHe": "מסוף על גג/קרקע בעיר נסתר ע\"י בניינים שמודל גובה-קרקע (~30מ') לא רואה. P.2108 מוסיף הנחתה ריאליסטית מהסביבה הבנויה — חשוב לישראל הצפופה (גוש דן, חיפה). אפשר לקשור לסוג שטח מ-WorldCover או OSM landuse.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "na", "url": "https://github.com/eeveetza/p2108", "priority": "should" },
+        { "name": "נתוני R0.01 חתוכים-מראש לישראל (P.837 + ITU-Rpy + P.1144)", "kind": "technique", "descHe": "מקור האמת לקצב גשם R0.01: רשת 0.125° מ-P.837-8 (או קבצי npz מוכנים של ITU-Rpy, MIT). חותכים את bbox ישראל (~29-33.5°N, 34-36°E ≈ ~600 נקודות) לקובץ JSON/Float32 של עשרות KB בריפו, וקוראים עם אינטרפולציה בי-לינארית תקנית (P.1144).", "benefitHe": "פותר גודל ו-CORS לחלוטין: הקובץ same-origin, נטען מיידית, עובד אופליין, בלי קריאה לשרת ITU בזמן ריצה. נותן getR001(lat,lon) תקני שמזין את חישוב דעיכת הגשם — הדרך הנקייה לשלב נתוני ITU רשמיים באפליקציה סטטית.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "yes", "url": "https://github.com/inigodelportillo/ITU-Rpy/tree/master/itur/data/837", "priority": "must" },
+        { "name": "הנחתת גזים אטמוספריים — ITU-R P.676 (חמצן + אדי מים)", "kind": "technique", "descHe": "Annex 2 של P.676 נותן נוסחת קירוב פשוטה (γo, γw ב-dB/km) עד ~350GHz מלחץ/טמפ'/לחות — מימוש ישיר ב-JS בלי סיכום מאות קווי ספקטרום.", "benefitHe": "תורם הנחתה לא-זניחה בקווים ארוכים בתדרים גבוהים (Ka-band ומעלה) — משלים את תקציב הקו ל-backhaul ארוך. לרוב השימושים בישראל (מתחת ל-15GHz) ההשפעה קטנה, אך משלים את מודל ההנחתה לצד הגשם.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "na", "url": "https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.676-13-202208-I!!PDF-E.pdf", "priority": "could" },
+        { "name": "Longley-Rice ITM — מודל הפצה תקני-תעשייה (WebRF / NTIA / itmlogic)", "kind": "technique", "descHe": "Irregular Terrain Model (20MHz–20GHz) המחשב free-space + עקיפת-טרין + troposcatter יחד. קיים מימוש Python ייחוס (itmlogic), מקור C++ של NTIA להידור ל-WASM, ופורט דפדפן מלא ב-WebGPU (WebRF, ~1200 שורות WGSL). דורש אימות רישיון של WebRF, ו-WebGPU לא נתמך בכל הדפדפנים.", "benefitHe": "שדרוג מהמודל הגיאומטרי (4/3+Fresnel) למודל הפצה תעשייתי (אותו של SPLAT!) שמחזיר הפסד-מסלול אמיתי. WebRF מוכיח שאפשר להריץ בדפדפן ולצייר מפת-כיסוי רדיאלית סביב אתר — מתחבר ישירות לסריקה הלאומית.", "cost": "free", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "na", "url": "https://github.com/edwardoughton/itmlogic", "priority": "could" },
+        { "name": "מודלי ITU-R של eeveetza (P.1546/P.1812/P.452/P.2001)", "kind": "library", "descHe": "מימושי ייחוס מאומתי-SG3 ב-MATLAB/Octave: P.1546/P.1812 (point-to-area), P.452 (הפרעות), P.2001 (כללי 30MHz–50GHz). קוד נקי וכמעט ללא תלות MATLAB מהותית בליבה — בסיס לתרגום ידני ל-JS.", "benefitHe": "P.1546/P.1812 הם בדיוק מה שצריך ל'מפת כיסוי שטח' מאנטנה (לא קו-לקו) — משלים את הסריקה הלאומית עם עוצמת שדה צפויה לפי שטח. הקוד מאומת רשמית, כך שתרגום ל-JS נותן תוצאות אמינות.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "na", "url": "https://github.com/eeveetza/p1546", "priority": "could" }
+      ]
+    },
+    {
+      "id": "israel-data-maps",
+      "titleHe": "מקורות מידע ומפות ישראליים",
+      "introHe": "שכבות מידע רשמיות וקהילתיות ספציפיות לישראל — אנטנות קיימות, מגדלים, מבנים גבוהים, קדסטר וגבולות. אלו נותנים נקודות עוגן אמיתיות לתכנון ומכשולים ידועים, וחלקם נגיש ישירות מהדפדפן.",
+      "items": [
+        { "name": "data.gov.il — אנטנות סלולריות פעילות (CKAN)", "kind": "data-source", "descHe": "מאגר ממשלתי (CKAN) של המשרד להגנת הסביבה: ~8,400 אתרי שידור סלולריים פעילים עם קואורדינטות ITM, חברה, טכנולוגיה (3G/4G/5G), עוצמת קרינה ותאריכי היתר. אומת: ה-API מחזיר Access-Control-Allow-Origin: *. נדרשת המרת ITM→WGS84 (EPSG:2039→4326) בלקוח.", "benefitHe": "טעינה ישירה בדפדפן של שכבת אנטנות קיימות — נקודות עוגן אמיתיות: הצעת עמדות שידור קיימות כאתרי מקור/יעד מאומתים, הצגת צפיפות כיסוי, ובדיקת LOS אל אנטנה רשמית.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://data.gov.il/dataset/antennaactive", "priority": "must" },
+        { "name": "data.gov.il CKAN API (datastore_search / package_search)", "kind": "api", "descHe": "ה-API הכללי של פורטל הנתונים הפתוחים. datastore_search מחזיר JSON עם פילטרים וחיפוש; package_search מאתר מאגרים. אומת שמחזיר Access-Control-Allow-Origin: * — fetch ישיר ללא פרוקסי.", "benefitHe": "תשתית גישה אחידה לכל הנתונים הממשלתיים הרלוונטיים (אנטנות פעילות/בהקמה ועוד) בלי backend ובלי מפתח. שכבות שמתעדכנות אוטומטית מהמקור הרשמי, וחיפוש דינמי של מאגרים נוספים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://data.gov.il/api/3/action/datastore_search", "priority": "must" },
+        { "name": "OpenStreetMap masts/towers דרך Overpass (ישראל)", "kind": "data-source", "descHe": "תרנים (man_made=mast), מגדלי תקשורת (man_made=communications_tower), tower:type=communication. שאילתת Overpass חיה החזירה 347 צמתים בישראל. נשלף ישירות מהדפדפן, CORS פתוח (overpass-api.de), ODbL.", "benefitHe": "מקור מיידי ל-347 אתרי תורן/מגדל אמיתיים כמועמדי קצה לקישור LOS ולסימון אתרים קיימים. שכבת 'מגדלים קיימים' לבחירה. אותה תשתית Overpass שכבר משמשת לכבישים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://wiki.openstreetmap.org/wiki/Tag:man_made%3Dcommunications_tower", "priority": "must" },
+        { "name": "Israel eAIP ENR 5.4 — מכשולי טיסה (CAA ישראל)", "kind": "data-source", "descHe": "פרסום אווירי רשמי של רשות התעופה האזרחית: טבלת ~90+ מכשולים גבוהים (בניין/ארובה/מגדל/אנטנה) עם קואורדינטות DMS, גובה ברגל וסוג תאורה. HTML ציבורי, מתעדכן ב-AIRAC. CORS לא אומת — אם חסום, איסוף חד-פעמי ל-JSON סטטי.", "benefitHe": "מאגר רשמי וייעודי של מבנים גבוהים בישראל עם קואורדינטות וגבהים מדויקים — לסימון מכשולים שעלולים לחסום קישור ולהצעת מגדלים גבוהים כמועמדי אתר. הקואורדינטות ב-DMS, צריך פרסור.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://e-aip.azurefd.net/2024-10-31-AIRAC/html/eAIP/LL-ENR-5.4-en-GB.html", "priority": "must" },
+        { "name": "GovMap open GeoServer — WMS opendata (גוש/חלקה, רשויות, נחלים)", "kind": "data-source", "descHe": "GeoServer פתוח של מפ\"י/govmap (open.govmap.gov.il/geoserver/opendata). אומת: GetCapabilities מחזיר Access-Control-Allow-Origin: *. שכבות: PARCEL_ALL, SUB_GUSH_ALL, muni_il, nechalim. תומך WMS 1.1.1/1.3.0, EPSG:2039 ו-WGS84.", "benefitHe": "שכבת WMS ישירה (L.tileLayer.wms) של גושים/חלקות וגבולות רשויות — קריטי לבדיקת בעלות וזכויות לפני הצבת אנטנה ולהצגת הרשות שבה האתר (רלוונטי לרישוי). ללא שרת ביניים ובלי מפתח; ל-overlay מומלץ EPSG:4326.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "yes", "url": "https://open.govmap.gov.il/geoserver/opendata/wms?service=WMS&request=GetCapabilities&version=1.3.0", "priority": "should" },
+        { "name": "OSM power towers + antennas + mobile sites דרך Overpass (ישראל)", "kind": "data-source", "descHe": "שאילתת Overpass חיה החזירה 13,823 צמתים בישראל ל-power=tower (עמודי מתח גבוה), man_made=antenna ו-communication:mobile_phone. CORS פתוח, ODbL.", "benefitHe": "עמודי מתח גבוה ואנטנות הם מכשולים פיזיים אמיתיים — אפשר להזריק כ'מכשולים נקודתיים' עם גובה משוער (קו מתח גבוה ~30-60מ') לחישוב LOS/Fresnel. גם מאות אתרים נוספים כמועמדי קצה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "yes", "url": "https://wiki.openstreetmap.org/wiki/Tag:man_made%3Dantenna", "priority": "should" },
+        { "name": "GovMap JS API — geocode + גוש/חלקה (api.govmap.gov.il)", "kind": "api", "descHe": "API רשמי של govmap: יצירת מפה, geocode (כתובת→X/Y ב-ITM), המרה כתובת↔גוש/חלקה, סימון ישויות. אומת: דורש token (הרשמה חינמית). בנוי לשימוש בדפדפן.", "benefitHe": "geocoding מדויק לכתובות עבריות/גוש-חלקה (טוב מ-Nominatim לכתובות ישראליות), והמרה לגוש/חלקה לזיהוי החלקה של אתר אנטנה (רישוי). חיסרון: דורש token, לכן עדיף כשנדרש דיוק ישראלי ולא כברירת מחדל.", "cost": "free", "apiKeyNeeded": true, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://api.govmap.gov.il/docs/intro/", "priority": "should" },
+        { "name": "משרד התקשורת — מפת אנטנות סלולר (שקיפות)", "kind": "data-source", "descHe": "מערכת השקיפות (2024): מפה אינטראקטיבית של אתרי שידור (פעילים/בהקמה/מתוכננים), כיסוי לפי חברה וטכנולוגיה, חיפוש לפי כתובת. הוצג ב-govmap (CELL_ACTIVE) וב-Tableau Public; הגלם זמין דרך data.gov.il.", "benefitHe": "מקור רשמי ועדכני לאיתור אנטנות והבנת כיסוי — אפשר לקשר מהאפליקציה ('צפה במפת משרד התקשורת לאזור') ולהשתמש בנתוני data.gov.il כשכבה, לבחירת עמדת שידור ריאלית והערכת עומס/אינטרפרנס.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "low", "israelCoverage": "yes", "url": "https://www.govmap.gov.il/sviva?lay=CELL_ACTIVE", "priority": "should" },
+        { "name": "מכפלי רדיו חובבים בישראל (IARC / RepeaterBook, state_id=IL)", "kind": "data-source", "descHe": "רשת ~23-26 מכפלים (VHF 2m/UHF 70cm, FM ו-DMR) עם תדרים, shift, CTCSS ומיקומי הרים (חרמון, ירושלים, ת\"א, חיפה, מצפה רמון, אילת). IARC: טבלאות HTML ללא API. RepeaterBook: lat/lon מוכנים וייצוא תכנותי (בכפוף לתנאי שימוש).", "benefitHe": "עמדות מכפל הרים בקואורדינטות גובה — יעדים אידיאליים לבדיקת LOS לחובבי רדיו (קהל יעד טבעי). preset של 'אתרי שידור גבוהים'. RepeaterBook נוח יותר (אין המרת ITM); הזנה חד-פעמית כי הנתונים יציבים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "medium", "israelCoverage": "yes", "url": "https://www.repeaterbook.com/row_repeaters/Display_SS.php?state_id=IL", "priority": "could" },
+        { "name": "GIS עירוני פתוח — ArcGIS REST (תל אביב IView2 ועוד)", "kind": "data-source", "descHe": "עיריות גדולות מפרסמות ArcGIS REST פתוח. אומת: gisn.tel-aviv.gov.il/.../IView2/MapServer מחזיר JSON ומשקף Origin בכותרת CORS. כולל מבנים, גבהי בניינים, תכנון. ערים נוספות (חיפה, ירושלים, ב\"ש) דומות.", "benefitHe": "שכבת גבהי-מבנים עירונית מדויקת לחישוב חסימות LOS עירוניות שה-DTM 30מ' מפספס — שליפת גובה בניין בנקודת המשדר/מקלט. CORS שמשקף origin מאפשר fetch ישיר, אך הכיסוי פר-עיר ולא ארצי.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "partial", "url": "https://gisn.tel-aviv.gov.il/arcgis/rest/services/IView2/MapServer?f=json", "priority": "could" },
+        { "name": "מפ\"י (Survey of Israel) — אורתופוטו 0.25m ו-DTM/BNTAL", "kind": "data-source", "descHe": "מפ\"י מפיקה אורתופוטו ארצי ~0.25מ' ו-DTM לאומי (BNTAL). ההפצה ב-FileGDB/Shapefile/GeoTIFF; חלק דרך data.gov.il/govmap. לא אומת endpoint WMTS/XYZ פתוח עם CORS לאורתופוטו — הגישה בעיקר דרך צופה govmap, חלק בתשלום/רישוי.", "benefitHe": "עקרונית הנתון המקומי הרשמי המדויק ביותר — DTM/אורתופוטו ברזולוציה גבוהה מ-Copernicus, שיפור משמעותי לחישוב פרופיל ופרנל באזורים עירוניים. מעשית קשה לצרוך מאפליקציה סטטית; דורש בירור ישיר מול מפ\"י. עד אז GLO-30 דרך Mapterhorn הוא הבחירה המעשית.", "cost": "freemium", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "yes", "url": "https://www.govmap.gov.il/", "priority": "could" },
+        { "name": "שטחי אש / מרחב אווירי מוגבל / שמורות רט\"ג — שכבות מגבלה", "kind": "data-source", "descHe": "שכבות רגולטוריות-מרחביות לחוקיות הצבת תורן: שטחי אש, מרחב אווירי מוגבל, שמורות וגנים (רט\"ג). מופצות בעיקר כ-Shapefile/FileGDB ודרך BNTAL/govmap; לא נמצא endpoint WMS מאוחד עם CORS לשטחי אש. חלק זמין כ-overlay ב-govmap או הורדות נקודתיות.", "benefitHe": "הצגת אזורי הגבלה מתריעה כשעמדת השידור או מסלול ה-LOS חוצים שטח אש/מרחב אווירי/שמורה — שיקול חוקי קריטי לפני הקמת תורן. אפילו overlay סטטי (GeoJSON שהומר פעם אחת) יוסיף ערך רגולטורי. דורש איסוף ממקורות מרובים.", "cost": "free", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "partial", "url": "https://data.gov.il/", "priority": "could" },
+        { "name": "OpenCelliD / beaconDB / CellMapper — אתרי סלולר משלימים", "kind": "data-source", "descHe": "OpenCelliD: המאגר הפתוח הגדול (CSV/API, דורש מפתח, CSV ~GB ללא CORS). beaconDB: יורש קהילתי של Mozilla Location Service (ללא מפתח, כיסוי ישראל דליל, ניסיוני). CellMapper: מיפוי קהילתי לכל המפעילים, אך ללא ייצוא חופשי/CORS. מיקומים מחושבים מתצפיות, לא מדויקים כמיקום התורן.", "benefitHe": "מקורות משלימים לקואורדינטות אנטנות סלולר. הדרך המעשית ל-OpenCelliD: הורדה חד-פעמית של נתח ישראל וצמצום ל-GeoJSON קטן סטטי. לעומת data.gov.il (רשמי, CORS, מדויק) — אלו פחות מומלצים כמקור עיקרי בישראל.", "cost": "free", "apiKeyNeeded": true, "corsOk": "no", "effort": "high", "israelCoverage": "yes", "url": "https://www.opencellid.org/downloads.php", "priority": "could" }
+      ]
+    },
+    {
+      "id": "regulation-spectrum-israel",
+      "titleHe": "רגולציה ותדרים בישראל",
+      "introHe": "מגבלות הספקטרום הישראליות (משרד התקשורת) קובעות אילו תדרים מותרים, באיזה הספק EIRP, ומתי נדרש רישיון. הזנת ערכים אלה מאפשרת לאפליקציה לחשב טווח LOS חוקי ולהזהיר מפני תכנון לא-חוקי. רוב הערכים נדרשים אימות סופי מול הנספח הרשמי.",
+      "items": [
+        { "name": "תקנות הטלגרף האלחוטי (אישורי התאמה) התשפ\"א-2020 — המקור הרשמי", "kind": "data-source", "descHe": "התקנון הרשמי והמחייב של משרד התקשורת. הנספחים (תוספת ראשונה/שנייה) מכילים את רשימת התחומים הפטורים מרישוי, תנאי השימוש ומגבלות ההספק/EIRP — מקור האמת (לא משני). חיסרון: PDF/HTML משפטי, אין API; נדרש חילוץ ידני לטבלת קבועים בקוד.", "benefitHe": "מאפשר להזין ערכי EIRP מקסימליים מחייבים לפי החוק הישראלי, כך שתקציב הקו יציג טווח/היתכנות ריאליסטיים ולא תאורטיים, ובורר 'תחום תדר' שמגביל אוטומטית את ההספק לפי הרגולציה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "high", "israelCoverage": "yes", "url": "https://www.nevo.co.il/law_html/law11/291220-3.htm", "priority": "must" },
+        { "name": "WiFi 6E / 6 GHz (5945–6425 MHz, indoor, 200 mW) — ישראל", "kind": "data-source", "descHe": "ישראל הקצתה 6 GHz ל-WiFi 6E בתוך מבנים: עד 200 mW (23 dBm) EIRP ב-5945–6245 (Low Power Indoor, מותאם CEPT), תיקון 2022. אין שימוש outdoor מאושר — לוודא מול הנספח הרשמי לפני הצגה כעובדה מוחלטת.", "benefitHe": "הוספת 6 GHz כאופציה עם דגל 'indoor בלבד' ותקרת 200 mW. קריטי ל-LOS: קישור חיצוני בין אנטנות בתחום זה אינו חוקי בישראל — האפליקציה יכולה להזהיר מפני בחירה לא-חוקית.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "low", "israelCoverage": "yes", "url": "https://www.vista-compliance.com/news/newsposts/2022/newspost220803", "priority": "must" },
+        { "name": "5 GHz WAS/RLAN (5150–5350 indoor / 5470–5725 outdoor) — ישראל", "kind": "data-source", "descHe": "ישראל מיישרת קו עם CEPT/ETSI: 5150–5350 כ-200 mW EIRP indoor (TPC/DFS ב-5250–5350), ו-5470–5725 עד 1 W (30 dBm) EIRP עם DFS, לרוב outdoor. הערכים ההרמוניים האירופיים — לאשר ניסוח מדויק מול נספח משרד התקשורת.", "benefitHe": "ה-5 GHz הוא התחום הנפוץ ביותר לקישורי PtP/PtMP חיצוניים. הזנת תקרות 200 mW (indoor) מול 1 W (outdoor) מאפשרת חישוב טווח LOS מקסימלי חוקי וסימון אילו תת-תחומים מתאימים לקישור חוץ.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "partial", "url": "https://docdb.cept.org/download/3450", "priority": "must" },
+        { "name": "5.8 GHz (5725–5850 MHz, BFWA / outdoor PtP) — ישראל", "kind": "data-source", "descHe": "משרד התקשורת קידם (מ-2021) שחרור 5.8 GHz לשימוש רחב יותר כולל BFWA חיצוני בהספק גבוה מ-25 mW (מודל CEPT עד 200 mW EIRP, ובחלק מהמדינות עד 4 W ל-BFWA). תחום ISM גלובלי. לוודא בנספח הנוכחי אם נכנס לתוקף וההספק הסופי.", "benefitHe": "תחום מועדף לקישורי LOS חיצוניים ארוכים (WISP). הוספתו עם תקרת EIRP מתאימה מאפשרת תכנון קישורים ארוכי-טווח חוקיים. דורש ציון ההספק המאושר בישראל בנפרד מ-WiFi רגיל — מסומן 'דורש אימות'.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "medium", "israelCoverage": "partial", "url": "https://www.israeldefense.co.il/node/47793", "priority": "should" },
+        { "name": "E-band 70/80 GHz — מורשה (לא פטור) בישראל", "kind": "data-source", "descHe": "תחומי 71–76 ו-81–86 GHz לקישורי PtP בקיבולת גבוהה אינם פטורי-רישוי — דורשים רישיון/תיאום תדרים ממשרד התקשורת (light licensing). תחומים מנוהלים, לא ISM. (Ceragon/Siklu הישראליות מובילות עולמית בציוד E-band.) נוהל הרישוי המדויק בישראל לא אומת ישירות.", "benefitHe": "חשוב להבחין בין פטור-רישוי (WiFi 2.4/5/6) למורשה (E-band, רוב המיקרוגל). האפליקציה יכולה לסמן קישור E-band כ'דורש רישיון משרד התקשורת' ולמנוע הנחה שגויה שכל קישור LOS חופשי.", "cost": "paid", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "partial", "url": "https://www.e-band.com/70-80-GHz-Overview", "priority": "should" },
+        { "name": "SRD 868 MHz (863–870 MHz, 25 mW, LoRa/IoT) — ישראל", "kind": "data-source", "descHe": "תחום SRD אירופי 863–870 (כולל 868 ל-LoRa/IoT); ישראל מיישרת קו עם ERC 70-03: עד 25 mW ERP עם מגבלות duty-cycle. שונה מ-902–928 (ISM US). הערכים המדויקים-בישראל דורשים אישור מנספח משרד התקשורת.", "benefitHe": "אם האפליקציה תרחיב ל-IoT/טלמטריה ארוכי-טווח (LoRa), תחום sub-GHz מאפשר LOS ארוך מאוד בהספק נמוך. הזנת 25 mW ERP נותנת תקציב-קו ריאליסטי ל-868 שמתנהג שונה מ-5 GHz (פחות אובדן מסלול, חדירה טובה).", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "no", "effort": "medium", "israelCoverage": "partial", "url": "https://www.thethingsnetwork.org/docs/lorawan/regional-parameters/eu868/", "priority": "could" },
+        { "name": "60 GHz (57–66 GHz, פטור-רישוי, PtP קצר) — מודל ETSI/CEPT", "kind": "data-source", "descHe": "60 GHz פטור-רישוי לקישורי PtP קצרים. מודל אירופי שישראל נוטה לאמץ: עד +55 dBm EIRP, הספק מוליך +10 dBm, gain מינ' +30 dBi. לא אומת מקור ישראלי ספציפי; תחום ISM 61–61.5 GHz מופיע בויקיפדיה העברית. לאמת מול משרד התקשורת.", "benefitHe": "60 GHz מתאים לקישורי LOS חיצוניים קצרים (~1–2 ק\"מ) ברוחב פס עצום. בליעת חמצן גבוהה (~15 dB/km) מחייבת תיקון נוסף במודל הפיזיקה — הוספת התחום מציגה מגבלת טווח ריאליסטית קצרה, משפר דיוק.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "partial", "url": "https://www.60ghz-wireless.com/60ghz-band-regulation/", "priority": "could" }
+      ]
+    },
+    {
+      "id": "map-layers-3d",
+      "titleHe": "שכבות מפה ותצוגה תלת-ממד",
+      "introHe": "שכבות רקע ותצוגות שמשפרות את ההמחשה הויזואלית של נתיב ה-LOS — תצלומי לוויין, הצללת תבליט, ותצוגת הרים תלת-ממדית אמיתית מאותם אריחי גובה שכבר בשימוש.",
+      "items": [
+        { "name": "Esri World Imagery (תצלומי לוויין, XYZ ללא מפתח)", "kind": "data-source", "descHe": "אורתופוטו גלובלי של Esri כ-XYZ ישיר: services.arcgisonline.com/.../World_Imagery/MapServer/tile/{z}/{y}/{x}. עובד בדפדפן ללא מפתח, עם CORS, כיסוי ישראל ברזולוציה גבוהה.", "benefitHe": "שכבת לוויין אמיתית מתחת לקווי ה-LOS — לראות בינוי, צמחייה ומכשולים בין האנטנות ולאמת ידנית שהנתיב חופשי. שורת tileLayer אחת.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", "priority": "must" },
+        { "name": "MapLibre GL JS — טריין תלת-ממד מ-Terrarium (setTerrain)", "kind": "library", "descHe": "ספריית WebGL חינמית (BSD) עם raster-dem source ו-encoding:'terrarium' + map.setTerrain({source,exaggeration}) לטריין תלת-ממדי אמיתי. אפשר להזין בדיוק את אריחי AWS Terrarium / Mapterhorn הקיימים, וגם שכבת hillshade מובנית מאיצת-GPU.", "benefitHe": "תצוגת ה-LOS בתלת-ממד אמיתי מעל ההרים — להבין ויזואלית איפה רכס חוסם, במקום רק גרף חתך. מנצל מחדש את אריחי הגובה הקיימים (אותו datum של חישובי ה-LOS), בלי מקור נתונים נוסף.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://maplibre.org/maplibre-gl-js/docs/examples/3d-terrain/", "priority": "should" },
+        { "name": "leaflet-topography — hillshade / slope client-side מ-Terrarium", "kind": "library", "descHe": "ספריית Leaflet (GPL-3.0) שמחשבת בדפדפן רום/שיפוע/aspect מאריחי DEM מקודדי-RGB. תומכת ב-custom terrain tiles — אפשר להזין את אריחי ה-Terrarium הקיימים ולקבל hillshade/slope ללא מפתח (ברירת המחדל Mapbox דורשת token).", "benefitHe": "שכבת הצללת-תבליט שמדגישה רכסים ועמקים, ושכבת שיפוע לזיהוי מהיר של נקודות גבוהות מתאימות לאנטנה. עובד על אותו מקור Terrarium שכבר טעון — בלי קריאות רשת נוספות.", "cost": "free", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "yes", "url": "https://github.com/slutske22/leaflet-topography", "priority": "should" },
+        { "name": "EOX Sentinel-2 cloudless WMTS (לוויין נטול עננים)", "kind": "data-source", "descHe": "פסיפס לוויין נטול עננים מבוסס Sentinel-2, WMTS מ-tiles.maps.eox.at עם שכבות שנתיות (s2cloudless-2024). חינמי, CC BY-NC-SA, CORS-enabled, כיסוי ישראל.", "benefitHe": "אלטרנטיבה אסתטית ואחידה לתצלום לוויין כשכבת רקע, ללא מפתח — תמונת קרקע נקייה ועקבית מעל כל ישראל, בלי מגבלות התנאים של Esri.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml", "priority": "should" },
+        { "name": "deck.gl TerrainLayer (mesh תלת-ממד מ-Terrarium)", "kind": "library", "descHe": "שכבת WebGL (MIT) מ-vis.gl שבונה mesh תלת-ממדי של שטח מאריחי גובה מקודדי-RGB (Mapzen/Terrarium) דרך elevationData. ניתנת לשילוב מעל Leaflet עם סנכרון מצלמה.", "benefitHe": "בניית mesh תלת-ממדי של הפרופיל בין האתרים מאותם אריחי Terrarium, להצגת 'קו הראייה' כקו תלת-ממדי מעל ההרים וצביעת אזורים חסומים. אפשר לשלב עם Leaflet בלי לזנוח את ה-UI הקיים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://deck.gl/docs/api-reference/geo-layers/terrain-layer", "priority": "could" },
+        { "name": "PMTiles + protomaps-leaflet (מפת בסיס וקטורית ללא שרת)", "kind": "library", "descHe": "PMTiles — קובץ-יחיד לאריחי מפה על storage סטטי (כולל GitHub Pages), נקרא ב-HTTP Range. protomaps-leaflet (BSD-3) מרנדר אריחים וקטוריים ל-Leaflet ישירות מ-PMTiles בלי MapLibre.", "benefitHe": "אירוח מפת בסיס וקטורית עצמית (קובץ קטן רק לישראל) ישירות מ-GitHub Pages — בלי שרת אריחים, בלי תלות בשרת OSM שעלול ליפול/להגביל. שליטה מלאה (labels בעברית, הדגשת טופוגרפיה). מתאים לאפליקציה סטטית.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://docs.protomaps.com/pmtiles/leaflet", "priority": "could" },
+        { "name": "CesiumJS + Cesium Ion (גלובוס תלת-ממד מלא)", "kind": "library", "descHe": "ספריית גלובוס תלת-ממד פתוחה (Apache-2.0). World Terrain ותוכן 3D דרך Cesium Ion ב-free tier (5GB/100GB סטרימינג חודשי) — דורש token חינמי. כיסוי ישראל.", "benefitHe": "אופציה עוצמתית להצגת LOS על גלובוס תלת-ממד מלא עם ניתוח קו-ראייה תלת-ממדי מובנה. עדיף רק לחוויית 3D מלאה; דורש token ויש מכסת סטרימינג — פחות מתאים מ-MapLibre+Terrarium לאפליקציה סטטית קלה.", "cost": "freemium", "apiKeyNeeded": true, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://cesium.com/platform/cesium-ion/", "priority": "could" }
+      ]
+    },
+    {
+      "id": "new-features",
+      "titleHe": "יכולות ופיצ'רים חדשים",
+      "introHe": "פיצ'רים שמרחיבים את האפליקציה מ'בודק LOS' ל'יועץ תכנון רשת' — מציאת ממסר אוטומטית, מיטוב גובה תורן, רשת רב-נקודות, מפת כיסוי (viewshed), ושיפורי UX. רבים מנצלים את מנוע הסריקה והפיזיקה הקיימים.",
+      "items": [
+        { "name": "מאתר ממסר/relay אוטומטי בין שתי נקודות שאין ביניהן LOS", "kind": "feature", "descHe": "כשניתוח A→B נכשל, סורק אוטומטית פסגות/נקודות-גובה באליפסה בין A ל-B (אותם אריחי Terrarium) ובודק לכל מועמד אם הוא רואה את שניהם עם מרווח פרנל. מציג אתרי ממסר ממוינים לפי גובה/מרכזיות עם שני קווי-לינק. חישוב ב-Worker הקיים (viewshed.worker.js).", "benefitHe": "פיצ'ר-דגל שהופך תשובת 'לא' לפתרון פרקטי: 'שים ממסר על הפסגה הזו'. ייחודי — אין מקבילה חינמית בדפדפן, ובדיוק מה שמתכנן רשת בישראל (הר/ואדי) צריך. מנצל את כל תשתית השטח והפיזיקה הקיימים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://en.wikipedia.org/wiki/Passive_repeater", "priority": "must" },
+        { "name": "מיטוב גובה תורן מינימלי (binary search על גובה)", "kind": "feature", "descHe": "חיפוש בינארי על גובה התורן בכל קצה (A/B) מול נקודת-המרווח-הקריטית בחתך (שכבר מחושבת ב-los.js) שמשיג מרווח פרנל 60% מלא + עקמומיות 4/3. מחזיר את הגובה המינימלי בכל צד וגרף 'גובה מול מרווח'.", "benefitHe": "במקום שהמשתמש ינחש גבהים — 'הרם צד A ל-12מ' או צד B ל-7מ' כדי לפתוח את הקו'. הופך את האפליקציה מ'בודק כן/לא' ל'יועץ תכנון', מכמת את עלות התורן, ומשלים את הסריקה הלאומית (לא רק 'איפה' אלא 'כמה גבוה'). מנצל את חישוב המרווח הקיים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://www.qsl.net/kd2bd/splat.html", "priority": "must" },
+        { "name": "מחשבון תקציב קישור אינטראקטיבי (RSSI, fade margin, טווח מקס')", "kind": "feature", "descHe": "מחשבון link budget ב-JS: מזינים הספק משדר, רווח אנטנות, תדר ורגישות מקלט; מקבלים EIRP, RSSI משוער, fade margin ב-dB וטווח מקסימלי. כלל אצבע: 10dB≈95%, 15dB≈99% זמינות. צובע קישור ירוק/כתום/אדום לפי המרווח.", "benefitHe": "הופך את האפליקציה ממציג קו-ראייה גיאומטרי לכלי שמכריע אם הקישור באמת יעבוד — ה-UI שמחבר את כל מודלי ה-RF (FSPL, עקיפה, גשם) להחלטה אחת. ערך מרכזי, מימוש קל.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://rftools.io/calculators/rf/rf-link-budget/", "priority": "must" },
+        { "name": "ייבוא דפוס-קרינה של אנטנה (MSI Planet .msi/.pln + Radio Mobile .ant)", "kind": "feature", "descHe": "פרסר בדפדפן לקבצי דפוס-קרינה: MSI Planet (חתכי אזימוט+אלבטור, 360 ערכים) ו-Radio Mobile .ant (720 שורות גיין יחסי). פורמטים טקסטואליים שכל יצרן (Cisco, Ubiquiti) מספק, קלים לפענוח ב-JS.", "benefitHe": "במקום אנטנה איזוטרופית — המשתמש מעלה את דפוס האנטנה האמיתית, והאפליקציה מחשבת את הרווח בפועל בכיוון היעד וגם מציירת 'אונת קרינה' (lobe) על המפה. קריטי לאנטנות כיווניות וסקטוריאליות ולתקציב קו מדויק.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://wiki.towercoverage.com/wiki/84/creatingcorrecting-ant-files", "priority": "must" },
+        { "name": "מפת כיסוי / viewshed כשכבת חום (heatmap)", "kind": "feature", "descHe": "הצגת ה-viewshed כשכבת חום צבעונית רציפה ('מאיפה רואים את האנטנה') במקום/בנוסף למסכה הבינארית. Leaflet.heat (~3KB, ללא מפתח) או canvas overlay ידני עם gradient. הנתונים כבר מחושבים ב-viewshed.worker.js.", "benefitHe": "מפת-חום קריאה הרבה יותר מהמסכה הבינארית: רואים מיד היכן הקליטה חזקה/חלשה. עוזר לבחור מיקום אנטנה שמכסה אזור-ביקוש. משתלב עם permalink ושכבות. בהשראת HeyWhatsThat 'visibility cloak' ו-airLink color-coded coverage.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://github.com/Leaflet/Leaflet.heat", "priority": "should" },
+        { "name": "רשת רב-נקודות (point-to-multipoint / hub-and-spoke)", "kind": "feature", "descHe": "הרחבת המודל משתי אנטנות לרשת אתרים: hub מרכזי + אתרי-קצה או mesh. כל לינק נצבע ירוק/אדום לפי LOS, וטבלה מסכמת. מרחיבים antennaA/B למערך sites[] ולולאת analyzeLink על כל זוג; permalink/ייצוא מקודדים את כל הרשת. בהשראת airLink PtMP ו-ScadaCore master/slave.", "benefitHe": "תכנון רשת אלחוטית אמיתית בישראל הוא לרוב point-to-multipoint (hub על גבעה + לקוחות), לא לינק בודד. מקפיץ ערך: רואים בבת-אחת אילו לקוחות 'רואים' את ה-hub, ומשלב עם מוצא-הממסר ומיטוב-התורן לכיסוי רשת שלם.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "high", "israelCoverage": "yes", "url": "https://leafletjs.com/reference.html#polyline", "priority": "should" },
+        { "name": "יועץ בחירת band (WiFi 2.4/5/6 vs LoRa vs P2P microwave)", "kind": "feature", "descHe": "מנוע המלצה שמצליב אורך-קישור, throughput נדרש, רגישות-גשם ותקנת התדרים בישראל ומציע band ואנטנה. למשל: '8 ק\"מ קו נקי → P2P 5GHz צלחת 25dBi'; '30 ק\"מ טלמטריה → LoRa EU868'. מזהיר אם ה-band אסור/מוגבל בישראל.", "benefitHe": "מחבר את כל החישובים להחלטה מעשית אחת ומונע תכנון קישור לא-חוקי. ערך ייחודי שממקם את האפליקציה כיועץ-תכנון ולא רק מפה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://www.thethingsnetwork.org/docs/lorawan/regional-parameters/eu868/", "priority": "should" },
+        { "name": "מחשבון downtilt וטביעת-כיסוי לאנטנה סקטוריאלית", "kind": "feature", "descHe": "קלט גובה אנטנה, רוחב-אלומה אנכי, הטיה מכנית/חשמלית; פלט זווית הטיה אופטימלית tilt=atan((h_ant−h_rx−Δh)/d) ורדיוס פנימי/חיצוני של טביעת הכיסוי (±חצי רוחב-אלומה). מצייר את הסקטור על המפה.", "benefitHe": "תכנון PtMP אמיתי: מציבים אנטנת סקטור ורואים על המפה את אזור הקרקע המכוסה לפי הגובה וההטיה, ומקבלים זווית הטיה מומלצת. משלים את ייבוא דפוסי הקרינה — יחד תמונת כיסוי כיוונית מלאה.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://www.pasternack.com/t-calculator-antenna-downtilt.aspx", "priority": "should" },
+        { "name": "כלי מדידה (מרחק great-circle + אזימוט) + Undo/Redo", "kind": "feature", "descHe": "(1) מצב 'סרגל': לחיצות על המפה מציגות מרחק great-circle (haversine קיים ב-geo.js), אזימוט/bearing והפרש-גובה, עם Leaflet polyline+tooltip (או תוסף Leaflet.PolylineMeasure). (2) Undo/Redo: מחסנית snapshots של ה-state עם Ctrl+Z/Ctrl+Y, ללא ספריות.", "benefitHe": "מדידת אזימוט ומרחק היא צורך יומיומי בהכוונת אנטנות כיווניות (לאן לכוון את הדיש), ומנצלת את ה-haversine הקיים. Undo מסיר את הפחד מהתנסות — המשתמש גורר וסורק בחופשיות.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://github.com/ppete2/Leaflet.PolylineMeasure", "priority": "should" },
+        { "name": "מתג יחידות (m/ft) + theme בהיר/כהה + onboarding", "kind": "feature", "descHe": "שלושה שיפורי-UX ב-localStorage: מתג יחידות m/ft (תצוגה בלבד; הליבה מטרית), מתג theme בהיר/כהה (החלפת :root, ה-CSS כבר במשתני-צבע), ו-onboarding קצר בכניסה ראשונה (3-4 בועות, או driver.js).", "benefitHe": "ft נדרש לציוד שמתועד באימפריאלי ולשיתוף בינלאומי; theme בהיר משפר קריאות תחת שמש בשטח (חשוב למתכנן בחוץ); onboarding מוריד מחסום-כניסה. זולים ומגדילים אימוץ ונגישות.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://driverjs.com/", "priority": "could" }
+      ]
+    },
+    {
+      "id": "practical-engineering-libs",
+      "titleHe": "כלי תכנון מעשי וספריות בסיס",
+      "introHe": "ספריות תשתית וכלים מעשיים שמזינים את החישובים והתצוגה: מנוע גיאו-מרחבי, כיוון מצפן מגנטי, גרף פרופיל יעיל, וגיאוקודר חלופי. אבני-בניין שמקצרות פיתוח ומשפרות דיוק שדה.",
+      "items": [
+        { "name": "כיוון צפון-אמת מול מגנטי — geomagnetism (WMM2025)", "kind": "library", "descHe": "ספריית JS טהורה (Apache-2.0) של Natural Atlas עם מקדמי WMM מובנים (WMM2025, תקף ~2029). geomagnetism.model().point([lat,lon]) מחזירה declination לכל נקודה. בישראל כ-+5° מזרחה (ת\"א ~+4.99°, ירושלים ~+4.96°).", "benefitHe": "אנטנות מכוונים במצפן מגנטי, אך האזימוט המחושב הוא צפון-אמת. הספרייה ממירה אוטומטית (azimuth_mag = azimuth_true − declination) ומציגה את שני הערכים ליד החץ, כך שהמתקין מכוון נכון בלי טעות של 5°.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://github.com/naturalatlas/geomagnetism", "priority": "must" },
+        { "name": "Turf.js — מנוע גיאו-מרחבי לחישובי LOS", "kind": "library", "descHe": "מנוע גיאו-מרחבי מודולרי (MIT) שרץ בדפדפן: along/lineChunk (דגימת נקודות לאורך קו), distance/bearing, destination (מניפת סריקה), bbox, point-in-polygon. אין viewshed מובנה אבל מספק את כל אבני-הבניין.", "benefitHe": "כלי-עבודה לחישובי ה-LOS: turf.along לדגימת גובה בקצב קבוע לאורך הקרן, distance/bearing לכיוון אנטנה, destination לבניית מניפת הסריקה הלאומית. מקצר את קוד החישוב הקיים ומרחיב את ה-viewshed.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "low", "israelCoverage": "na", "url": "https://turfjs.org/", "priority": "should" },
+        { "name": "uPlot — גרף פרופיל-שטח יעיל מאוד", "kind": "library", "descHe": "ספריית גרפים זעירה ומהירה (MIT, ~48KB) ל-Canvas. מרנדרת אלפי נקודות בזיכרון/CPU נמוכים בהרבה מ-Chart.js (~10% CPU מול ~40% ב-60fps).", "benefitHe": "מושלמת לגרף פרופיל השטח: עקומת קרקע, קו ראייה עם תיקון 4/3, ואזור פרנל 60% — אלפי דגימות לאורך מסלול ארוך בלי לתקוע את הדפדפן. קלה משמעותית מ-Chart.js (48KB מול 254KB).", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "na", "url": "https://github.com/leeoniya/uPlot", "priority": "should" },
+        { "name": "Photon (komoot) — geocoding autocomplete חלופי", "kind": "api", "descHe": "גיאוקודר OSM פתוח עם שרת דמו ציבורי photon.komoot.io. geocoding + reverse + type-ahead, ללא מפתח, CORS מובנה, כיסוי ישראל.", "benefitHe": "חלופה/גיבוי ל-Nominatim. מהיר יותר ל-autocomplete תוך כדי הקלדה (שדה 'הזן כתובת אתר'), ומפיג עומס ממדיניות 1-req/sec של Nominatim. CORS מאופשר.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "yes", "url": "https://photon.komoot.io/", "priority": "should" },
+        { "name": "Valhalla — isochrones (זמן-נסיעה לאתר אנטנה)", "kind": "api", "descHe": "מנוע ניתוב פתוח (FOSSGIS) עם שרת דמו ציבורי. מעבר לניתוב — isochrones (פוליגוני זמן-נסיעה) ו-elevation לאורך מסלול. כיסוי ישראל דרך OSM.", "benefitHe": "הרחבה ל-OSRM הקיים. isochrone מצייר 'עד כמה רחוק מגיעים ב-30/60 דק' מאתר אנטנה' — שימושי לתכנון תחזוקה/גישה לאתר תורן בשטח.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://valhalla.openstreetmap.de/", "priority": "could" }
+      ]
+    },
+    {
+      "id": "export-share-pwa",
+      "titleHe": "ייצוא, שיתוף ו-PWA",
+      "introHe": "כל אלה צד-לקוח לחלוטין ומתאימים מושלם ל-static hosting: שיתוף תרחיש בלינק, ייצוא לפורמטים שאנשי שטח משתמשים בהם, דוח להדפסה, ועבודה אופליין בשטח.",
+      "items": [
+        { "name": "Permalink משותף (מצב מקודד ב-URL עם LZ-String)", "kind": "feature", "descHe": "קישור-קבע שמקודד את כל מצב התכנון (קואורדינטות A/B, גובה תורן, תדר, אחוז פרנל, שכבות פעילות) ל-URL (query/hash). דחיסה עם LZ-String (compressToEncodedURIComponent). הכל בצד-לקוח.", "benefitHe": "שמירה ושיתוף של תרחיש LOS שלם בלינק אחד (וואטסאפ/מייל) שמשחזר בדיוק את אותו ניתוח — קריטי לאפליקציה ללא שרת/חשבונות. גם 'שמירת פרויקט' חינמית (bookmark=פרויקט). תואם מושלם ל-GitHub Pages.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://github.com/pieroxy/lz-string", "priority": "must" },
+        { "name": "ייצוא KML/KMZ של קישור, פרנל וכיסוי (+ GPX + CSV)", "kind": "feature", "descHe": "ייצוא תוצאות כקבצים סטנדרטיים: קו-לינק ואנטנות כ-KML/KMZ (Google Earth), נקודות כ-GPX (GPS/Garmin), חתך-שטח/viewshed כ-CSV. JSON→GeoJSON→@mapbox/tokml או geojson-to-gpx; KMZ=ZIP עם JSZip; הורדה דרך Blob. KML הוא XML פשוט שנבנה כולו בדפדפן.", "benefitHe": "מחבר את הכלי לזרימת-העבודה של אנשי שטח: פתיחה ב-Google Earth/QGIS (כולל תלת-ממד), טעינת נקודות ל-GPS, ניתוח ב-Excel. הופך 'צעצוע בדפדפן' לכלי שמשתלב עם GIS מקצועי. אפס שרת. (גם HeyWhatsThat ו-airLink מייצאים KMZ.)", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://github.com/mapbox/tokml", "priority": "must" },
+        { "name": "PWA + Service Worker — caching אופליין של אריחי שטח (Workbox)", "kind": "feature", "descHe": "manifest.json + Service Worker שמיירט בקשות ושומר ב-Cache את אריחי השטח (Terrarium/Mapterhorn), אריחי המפה, Leaflet ו-JS. אסטרטגיה: cache-first לאריחי terrain (לעולם לא משתנים) + stale-while-revalidate למפת רקע. SW ידני קל או Workbox.", "benefitHe": "עבודה בשטח ללא קליטה — בדיוק התרחיש של מתכנן אנטנות בשדה. אריחי גובה שכבר נטענו נשמרים, כך שניתוח LOS וחתך-שטח עובדים אופליין, וניווט חוזר מהיר. אפשר 'להתקין' את האתר כאפליקציה במסך הבית.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "medium", "israelCoverage": "na", "url": "https://developer.chrome.com/docs/workbox/caching-strategies-overview/", "priority": "must" },
+        { "name": "דוח להדפסה/PDF עמוד-אחד (CSS @media print, ללא ספרייה)", "kind": "feature", "descHe": "כפתור 'דוח להדפסה': עמוד נקי עם מפה ממורכזת על הלינק, גרף חתך (SVG קיים), טבלת פרמטרים (תדר, מרחק, גובה אפקטיבי, פרנל 60%, פסיקת LOS), חותמת תאריך ומקור-נתונים. CSS @media print + window.print() → 'Save as PDF'. אפס ספריות, אפס שרת.", "benefitHe": "פלט מקצועי לתיוק/הגשה ללקוח או רגולטור בלי תלות ב-html2canvas (שמתקשה עם מפות Leaflet). גרף החתך הוקטורי נכנס חד וברור, וה-permalink מודפס כ-QR/לינק כך שהדוח 'חי'.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "yes", "effort": "low", "israelCoverage": "na", "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_media_queries/Printing", "priority": "must" }
+      ]
+    },
+    {
+      "id": "competitor-insights",
+      "titleHe": "לקחים ממתחרים",
+      "introHe": "תובנות מכלים קיימים (HeyWhatsThat, Ubiquiti airLink, SPLAT!, Radio Mobile, CloudRF, ScadaCore) — מה כדאי לשכפל, איפה החולשות שלהם מהוות הזדמנות בידול לאפליקציה שלנו, שכבר יש לה נתוני שטח client-side.",
+      "items": [
+        { "name": "HeyWhatsThat — Visibility Cloak (viewshed צבוע + פנורמת אופק)", "kind": "competitor-insight", "descHe": "מצייר 'גלימת נראות' שצובעת באדום את כל השטח הנראה מנקודת תצפית (ירי קווי ראייה לכל הכיוונים), ומפיק פנורמת אופק 360° עם תיוג פסגות.", "benefitHe": "לשכפל: במקום LOS לזוג נקודות בלבד, להריץ viewshed מהאנטנה ולצבוע את כל האזורים הנראים — הופך את National Scan לויזואלי הרבה יותר (רואים את כל אזור הכיסוי הפוטנציאלי). ניתן לחשב בדפדפן מאריחי Terrarium.", "cost": "free", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "yes", "url": "http://www.heywhatsthat.com/profiler.html", "priority": "should" },
+        { "name": "HeyWhatsThat Path Profiler — פרנל תלוי-תדר + אומדן אות + עריכת גובה", "kind": "competitor-insight", "descHe": "פרופיל המציג מרחק, LOS, אזור Fresnel ראשון עם 60% ניקיון לפי תדר שמזינים, אומדן עוצמת אות ו-throughput, ולחיצה על כל נקודה לעריכת הגובה שלה ידנית.", "benefitHe": "לשכפל: שדה תדר שמניע את ציור ה-Fresnel (האפליקציה כבר עושה 60% — להפוך לתלוי-תדר), אומדן עוצמת אות/throughput גס, ועריכת גובה לכל נקודה כדי לדמות תורן/מכשול בלי לזוז מהמיקום.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "http://www.heywhatsthat.com/profiler.html", "priority": "should" },
+        { "name": "Ubiquiti airLink — כיסוי color-coded + KMZ + recompute <4s", "kind": "competitor-insight", "descHe": "מציבים נקודת שידור עם גובה/gain/EIRP, ומחשב מפת כיסוי שטחית צבעונית (ירוק/צהוב/אדום) לפי איכות הקישור, פרופיל צבוע, Fresnel ו-60% ניקיון. מייצא KMZ, מחשב מחדש ב-~4 שניות.", "benefitHe": "לשכפל: קוד צבעים לאיכות הקישור (דרגות לפי מרווח Fresnel/marginal ולא בינארי), ייצוא KMZ, ומהירות חישוב <שניות שמאפשרת ניסוי-וטעייה של גבהים.", "cost": "free", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://link.ubnt.com", "priority": "should" },
+        { "name": "SPLAT! — גובה אנטנה מינימלי + HAAT + uptilt/downtilt", "kind": "competitor-insight", "descHe": "מחשב את הגובה המינימלי הנדרש ל-LOS+Fresnel, זוויות הרמה/שיפוע, אזימוט, מרחק מעגל גדול וגובה מעל פני השטח הממוצע (HAAT).", "benefitHe": "לשכפל (פיצ'ר-דגל): 'גובה אנטנה מינימלי' — בהינתן זוג חסום, חשב בלולאה את הגובה המינימלי בכל קצה שיפתח LOS+60% Fresnel. משלים את National Scan. כל החישוב אפשרי מאריחי Terrarium בדפדפן.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://www.qsl.net/kd2bd/splat.html", "priority": "should" },
+        { "name": "ScadaCore PathRF — multi-radio LOS עם drag master/slave", "kind": "competitor-insight", "descHe": "מחשב LOS למספר רדיו: Master + Slaves, גרירה על המפה או קואורדינטות, קו ירוק/אדום לכל נתיב. מתחשב בגובה אנטנה ובעקמומיות — אך לא בבניינים.", "benefitHe": "לשכפל: זרימת hub-and-spoke/PtMP עם גרירה ועדכון בזמן אמת לכל קישור. החולשה שלהם (אי-התחשבות בבניינים) היא הזדמנות בידול — לאפליקציה שלנו יש נתוני שטח ואפשר להוסיף שכבת מבנים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://www.scadacore.com/tools/rf-path/rf-line-of-sight-for-multiple-radios/", "priority": "should" },
+        { "name": "Radio Mobile — link budget עם land-cover clutter + כיסוי מצטבר", "kind": "competitor-insight", "descHe": "מריץ Longley-Rice (ITM) על גובה קרקע + כיסוי קרקע + צפיפות אוכלוסין, ומפיק מפות כיסוי וחישובי אזימוט. ה-land-cover מוסיף נחיתת אות מצמחייה/בנייה מעבר לטופוגרפיה.", "benefitHe": "לשכפל מותאם: הוספת land-cover (ESA WorldCover 10m, מכסה ישראל) מעל אריחי הגובה לתיקון אובדן מסלול, ומפת כיסוי מצטברת ממספר אתרים לאיתור אזורים מתים בין תורנים.", "cost": "free-no-key", "apiKeyNeeded": false, "corsOk": "unknown", "effort": "high", "israelCoverage": "yes", "url": "https://www.ve2dbe.com/rmonlineinfoeng.html", "priority": "could" },
+        { "name": "CloudRF — link budget + תבנית אנטנה .ANT + Area/Super-Layer", "kind": "competitor-insight", "descHe": "מחשב RSSI=Ptx+Gain−PathLoss−הפסדים+Grx, תומך בתבניות אנטנה .ANT, beamwidth/downtilt/front-to-back, ומריץ heatmap PtMP (Area) ואיחוד רב-אתרים (Super Layer) על GPU. freemium עם מפתח.", "benefitHe": "לשכפל בצד-לקוח ללא שרת: נוסחת תקציב הקישור (אריתמטיקה), דגם אנטנה כיווני שמשדרג viewshed מ'נראות גאומטרית' ל'נראות בתוך אונת הקרינה', ואיחוד כיסוי רב-אתרים לזיהוי חורים — הרחבה טבעית של National Scan.", "cost": "freemium", "apiKeyNeeded": true, "corsOk": "unknown", "effort": "medium", "israelCoverage": "yes", "url": "https://cloudrf.com/documentation/developer/", "priority": "should" }
+      ]
+    }
+  ]
+}</script>
+<script>
+const REPORT = JSON.parse(document.getElementById('report-data').textContent);
+const KIND={'data-source':'מקור מידע','api':'API','library':'ספרייה','feature':"פיצ'ר",'technique':'טכניקה','competitor-insight':'תובנת מתחרה'};
+const PRI={must:'חובה',should:'מומלץ',could:'אופציונלי'};
+const COST={'free-no-key':'חינם · ללא מפתח','free':'חינם','freemium':'Freemium','paid':'בתשלום','unknown':'עלות לא ידועה'};
+const EFF={low:'מאמץ נמוך',medium:'מאמץ בינוני',high:'מאמץ גבוה'};
+const IL={yes:'כיסוי ישראל ✓',partial:'כיסוי חלקי',no:'אין כיסוי ✗',na:'',unknown:''};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const EXT='<svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17 17 7M9 7h8v8"/></svg>';
+const costClass=c=>c==='free-no-key'||c==='free'?'cost-free':c==='paid'?'cost-paid':c==='freemium'?'cost-freemium':'';
+
+function badges(it){
+  let h='';
+  h+=`<span class="b ${costClass(it.cost)}">${esc(COST[it.cost]||it.cost)}</span>`;
+  if(it.effort) h+=`<span class="b eff-${it.effort}">${esc(EFF[it.effort]||it.effort)}</span>`;
+  if(it.israelCoverage&&IL[it.israelCoverage]) h+=`<span class="b il-${it.israelCoverage==='yes'||it.israelCoverage==='partial'?'yes':'no'}">${esc(IL[it.israelCoverage])}</span>`;
+  if(it.apiKeyNeeded===true) h+=`<span class="b warn">דורש מפתח</span>`;
+  if(it.corsOk==='no') h+=`<span class="b warn">CORS ✗</span>`;
+  return h;
+}
+function titleLink(name,url){
+  return url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}${EXT}</a>`:esc(name);
+}
+
+// ---- hero ----
+document.getElementById('headline').innerHTML = esc(REPORT.headlineHe).replace(/קו-הראייה|LOS/,'<span class="hl">$&</span>');
+document.getElementById('lede').textContent = REPORT.summaryHe;
+document.getElementById('gennote').textContent = REPORT.generatedNote||'';
+
+const allItems = REPORT.sections.flatMap(s=>s.items);
+const nFree = allItems.filter(i=>i.cost==='free-no-key'||i.cost==='free').length;
+const nIL = allItems.filter(i=>i.israelCoverage==='yes').length;
+const nMust = allItems.filter(i=>i.priority==='must').length;
+const stats=[['10','תחומי מחקר'],[String(allItems.length),'כלים ומקורות'],[String(nFree),'חינמיים'],[String(nMust),'בעדיפות חובה'],[String(REPORT.topPicks.length),'מובחרים']];
+document.getElementById('stats').innerHTML = stats.map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+document.getElementById('f-items').textContent = allItems.length;
+document.getElementById('picks-sub').textContent = `${REPORT.topPicks.length} ההמלצות החזקות ביותר`;
+
+// ---- top picks ----
+document.getElementById('picks').innerHTML = REPORT.topPicks.map((p,i)=>`
+  <article class="pick">
+    <div class="rank">${i+1}</div>
+    <div style="min-width:0">
+      <h3>${titleLink(p.name,p.url)}</h3>
+      <p>${esc(p.whyHe)}</p>
+      <div class="badges"><span class="b ${costClass(p.cost)}">${esc(COST[p.cost]||p.cost)}</span><span class="b eff-${p.effort}">${esc(EFF[p.effort]||p.effort)}</span></div>
+    </div>
+  </article>`).join('');
+
+// ---- sections ----
+document.getElementById('sections').innerHTML = REPORT.sections.map((s,si)=>`
+  <details class="section reveal" open data-sec="${s.id}" style="animation-delay:${Math.min(si*60,360)}ms">
+    <summary class="sec-head">
+      <span class="sec-idx">${String(si+1).padStart(2,'0')}</span>
+      <span class="sec-meta"><h2>${esc(s.titleHe)}</h2><p>${esc(s.introHe)}</p></span>
+      <span class="sec-tools"><span class="n" data-n="${s.id}">${s.items.length} כלים</span>
+        <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+    </summary>
+    <div class="grid">
+      ${s.items.map(it=>`
+        <article class="card p-${it.priority}"
+          data-pri="${it.priority}" data-cost="${it.cost}" data-il="${it.israelCoverage}"
+          data-text="${esc((it.name+' '+it.descHe+' '+it.benefitHe).toLowerCase())}">
+          <div class="top"><span class="kind">${esc(KIND[it.kind]||it.kind||'')}</span><span class="pri pri-${it.priority}">${esc(PRI[it.priority]||it.priority)}</span></div>
+          <h3>${titleLink(it.name,it.url)}</h3>
+          <p class="desc">${esc(it.descHe)}</p>
+          <div class="benefit"><b>תועלת לאפליקציה</b>${esc(it.benefitHe)}</div>
+          <div class="badges">${badges(it)}</div>
+        </article>`).join('')}
+    </div>
+  </details>`).join('');
+
+// ---- filtering ----
+const q=document.getElementById('q');
+const priBtns=[...document.querySelectorAll('#pri-chips .chip')];
+const freeBtn=document.getElementById('free-only');
+const ilBtn=document.getElementById('il-only');
+const countEl=document.getElementById('count');
+const emptyEl=document.getElementById('empty');
+
+function activePris(){return new Set(priBtns.filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>b.dataset.pri));}
+function apply(){
+  const term=q.value.trim().toLowerCase();
+  const pris=activePris();
+  const freeOnly=freeBtn.getAttribute('aria-pressed')==='true';
+  const ilOnly=ilBtn.getAttribute('aria-pressed')==='true';
+  let shown=0;
+  document.querySelectorAll('.section').forEach(sec=>{
+    let secShown=0;
+    sec.querySelectorAll('.card').forEach(c=>{
+      const okPri=pris.has(c.dataset.pri);
+      const okText=!term||c.dataset.text.includes(term);
+      const okFree=!freeOnly||c.dataset.cost==='free-no-key'||c.dataset.cost==='free';
+      const okIl=!ilOnly||c.dataset.il!=='no';
+      const vis=okPri&&okText&&okFree&&okIl;
+      c.style.display=vis?'':'none';
+      if(vis){secShown++; shown++;}
+    });
+    sec.style.display=secShown?'':'none';
+    const n=sec.querySelector('[data-n]'); if(n) n.textContent=secShown+' כלים';
+  });
+  // top picks: filter by text only
+  document.querySelectorAll('.pick').forEach(p=>{
+    const t=p.textContent.toLowerCase();
+    p.style.display=(!term||t.includes(term))?'':'none';
+  });
+  countEl.textContent=`מציג ${shown} מתוך ${allItems.length}`;
+  emptyEl.classList.toggle('show',shown===0);
+}
+q.addEventListener('input',apply);
+priBtns.concat([freeBtn,ilBtn]).forEach(b=>b.addEventListener('click',()=>{
+  b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true'); apply();
+}));
+
+// expand/collapse all
+const toggleAll=document.getElementById('toggle-all');
+toggleAll.addEventListener('click',()=>{
+  const open=toggleAll.getAttribute('aria-pressed')==='true';
+  document.querySelectorAll('.section').forEach(s=>{ if(open) s.removeAttribute('open'); else s.setAttribute('open',''); });
+  toggleAll.setAttribute('aria-pressed', open?'false':'true');
+  toggleAll.textContent= open?'הרחב הכל':'כווץ הכל';
+});
+
+apply();
+</script>
+</body>
+</html>

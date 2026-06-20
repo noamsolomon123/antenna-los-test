@@ -1,10 +1,15 @@
-// terrain.js — fetch, decode & cache AWS "Terrain Tiles" (Terrarium PNG) and
-// sample elevation anywhere. Browser-only (uses fetch + canvas). No API key.
+// terrain.js — fetch, decode & cache "Terrarium" terrain tiles and sample elevation
+// anywhere. Browser-only (uses fetch + canvas). No API key.
 //
 // Terrarium decode:  elevation_m = (R*256 + G + B/256) - 32768
-// Source verified CORS-enabled (Access-Control-Allow-Origin: *).
+// Sources verified CORS-enabled (Access-Control-Allow-Origin: *).
 
+// Primary: Mapterhorn — Copernicus GLO-30, *terrarium* encoding (same decode formula),
+// 512px webp, CORS:* , no key. A cleaner/newer DSM than the SRTM-based AWS tiles.
+// Fallback: AWS Terrain Tiles (Terrarium, 256px png) — kept so a missing Mapterhorn
+// tile (e.g. an unsupported zoom) degrades gracefully instead of becoming nodata.
 const SOURCES = [
+  (z, x, y) => `https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`,
   (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`,
   (z, x, y) => `https://elevation-tiles-prod.s3.amazonaws.com/terrarium/${z}/${x}/${y}.png`,
 ];
@@ -28,20 +33,49 @@ const lat2tileF = (lat, z) => {
   return ((1 - Math.asinh(Math.tan(r)) / Math.PI) / 2) * 2 ** z;
 };
 
+// Block-average downsample of an elevation grid (Float32) from sw×sh to dw×dh.
+// We downsample in ELEVATION space, never in RGB space: averaging the raw
+// terrarium R/G/B channels would corrupt values wherever a low-order byte wraps
+// (e.g. G 255->0 as the metre rolls over), producing spurious spikes.
+function downsampleElev(src, sw, sh, dw, dh) {
+  const out = new Float32Array(dw * dh);
+  const rx = sw / dw, ry = sh / dh;
+  for (let dy = 0; dy < dh; dy++) {
+    const sy0 = Math.floor(dy * ry);
+    const sy1 = Math.min(sh, Math.max(sy0 + 1, Math.floor((dy + 1) * ry)));
+    for (let dx = 0; dx < dw; dx++) {
+      const sx0 = Math.floor(dx * rx);
+      const sx1 = Math.min(sw, Math.max(sx0 + 1, Math.floor((dx + 1) * rx)));
+      let sum = 0, n = 0;
+      for (let sy = sy0; sy < sy1; sy++) {
+        const row = sy * sw;
+        for (let sx = sx0; sx < sx1; sx++) { sum += src[row + sx]; n++; }
+      }
+      out[dy * dw + dx] = n ? sum / n : NaN;
+    }
+  }
+  return out;
+}
+
 // ---- pixel decoding --------------------------------------------------------
+// Decodes a tile bitmap (any size: 256px AWS png or 512px Mapterhorn webp) to a
+// TILE×TILE Float32 elevation grid. Larger tiles are decoded at native resolution
+// (no canvas scaling — that would resample terrarium RGB) then block-averaged down,
+// keeping every cached tile a uniform 256² grid so the rest of the module is unchanged.
 function decodeBitmap(bmp) {
+  const w = bmp.width || TILE, h = bmp.height || TILE;
   const c =
     typeof OffscreenCanvas !== 'undefined'
-      ? new OffscreenCanvas(TILE, TILE)
-      : Object.assign(document.createElement('canvas'), { width: TILE, height: TILE });
+      ? new OffscreenCanvas(w, h)
+      : Object.assign(document.createElement('canvas'), { width: w, height: h });
   const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(bmp, 0, 0, TILE, TILE);
-  const { data } = ctx.getImageData(0, 0, TILE, TILE);
-  const elev = new Float32Array(TILE * TILE);
+  ctx.drawImage(bmp, 0, 0); // native size — no resampling of encoded bytes
+  const { data } = ctx.getImageData(0, 0, w, h);
+  const elev = new Float32Array(w * h);
   for (let i = 0, p = 0; i < data.length; i += 4, p++) {
     elev[p] = data[i] * 256 + data[i + 1] + data[i + 2] / 256 - 32768;
   }
-  return elev;
+  return (w === TILE && h === TILE) ? elev : downsampleElev(elev, w, h, TILE, TILE);
 }
 
 async function fetchTile(z, x, y) {
