@@ -248,6 +248,47 @@
   .tool-result .tr-row { padding:5px 0; border-top:1px solid rgba(125,165,205,.14); }
   .tool-result a { color:#6ad0ff; }
   .tool-result b { color:#cfe0f5; unicode-bidi:isolate; }
+  /* antenna selector (in A/B cards) */
+  .antsel { margin-top:8px; }
+  .antsel-btn { width:100%; font:inherit; font-size:.85em; font-weight:600; cursor:pointer; color:#cfe0f5;
+    background:rgba(79,154,240,.1); border:1px dashed #3f5a7e; border-radius:9px; padding:8px 10px; text-align:center; transition:background .15s,border-color .15s; }
+  .antsel-btn:hover { background:rgba(79,154,240,.18); border-color:#4f9af0; }
+  .antsel-chip { display:flex; align-items:center; gap:9px; background:#11161e; border:1px solid #2f3a4c; border-radius:10px; padding:7px 9px; }
+  .antsel-chip .thumb { width:40px; height:40px; flex:none; border-radius:7px; background:#fff; object-fit:contain; }
+  .antsel-chip .ph { width:40px; height:40px; flex:none; border-radius:7px; background:#1a2230; color:#6ad0ff; display:grid; place-items:center; }
+  .antsel-chip .ph svg { width:24px; height:24px; }
+  .antsel-chip .info { flex:1; min-width:0; }
+  .antsel-chip .nm { font-size:.82em; font-weight:600; color:#eaf2fb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .antsel-chip .sub { font-size:.72em; color:#8fa2b6; }
+  .antsel-chip .g { font-family:'JetBrains Mono',monospace; font-size:.8em; font-weight:700; color:#36e0a0; background:rgba(54,224,160,.12); border-radius:6px; padding:2px 7px; white-space:nowrap; }
+  .antsel-chip .chg { font:inherit; font-size:.72em; cursor:pointer; color:#9fb0c3; background:none; border:1px solid #38445a; border-radius:6px; padding:3px 7px; }
+  .antsel-chip .chg:hover { color:#fff; border-color:#4f9af0; }
+  /* antenna picker modal */
+  .ant-modal { position:fixed; inset:0; z-index:1200; background:rgba(4,8,13,.72); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:18px; }
+  .ant-modal[hidden] { display:none; }
+  .ant-modal-box { width:min(880px,96vw); max-height:90vh; display:flex; flex-direction:column; background:#0f1620; border:1px solid #2a3647; border-radius:16px; box-shadow:0 30px 80px -20px #000; overflow:hidden; }
+  .ant-modal-head { display:flex; align-items:center; gap:12px; padding:15px 18px; border-bottom:1px solid #222d3c; }
+  .ant-modal-head h3 { margin:0; font-size:1.05em; color:#fff; }
+  .ant-x { margin-inline-start:auto; font:inherit; font-size:1.05em; cursor:pointer; color:#9fb0c3; background:none; border:none; padding:4px 8px; border-radius:7px; }
+  .ant-x:hover { color:#fff; background:rgba(255,255,255,.08); }
+  .ant-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:12px 18px; border-bottom:1px solid #222d3c; }
+  .ant-filters input { flex:1 1 180px; min-width:140px; padding:9px 13px; border-radius:999px; border:1px solid #36455a; background:#0a0f16; color:#eaf2fb; font:inherit; }
+  .ant-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .ant-chips button { font:inherit; font-size:.82em; cursor:pointer; color:#c4d4e6; background:#1a2230; border:1px solid #324056; border-radius:999px; padding:5px 11px; }
+  .ant-chips button[aria-pressed="true"] { color:#06140f; background:#6ad0ff; border-color:#6ad0ff; font-weight:700; }
+  .ant-grid { overflow-y:auto; padding:14px 18px; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .ant-card { cursor:pointer; background:#131b26; border:1px solid #283546; border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:7px; transition:transform .12s,border-color .12s,box-shadow .12s; }
+  .ant-card:hover { transform:translateY(-3px); border-color:#4f9af0; box-shadow:0 14px 30px -14px #000; }
+  .ant-card .pic { height:96px; border-radius:8px; background:#fff; display:grid; place-items:center; overflow:hidden; }
+  .ant-card .pic img { width:100%; height:100%; object-fit:contain; }
+  .ant-card .pic .ph { color:#3a6ea5; } .ant-card .pic .ph svg { width:46px; height:46px; }
+  .ant-card .nm { font-size:.8em; font-weight:600; color:#eaf2fb; line-height:1.3; min-height:2.4em; }
+  .ant-card .meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .ant-card .band { font-size:.7em; color:#8fa2b6; border:1px solid #324056; border-radius:5px; padding:1px 6px; }
+  .ant-card .gain { font-family:'JetBrains Mono',monospace; font-size:.78em; font-weight:700; color:#36e0a0; background:rgba(54,224,160,.12); border-radius:5px; padding:1px 7px; margin-inline-start:auto; }
+  .ant-modal-foot { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 18px; border-top:1px solid #222d3c; }
+  .ant-clear { font:inherit; font-size:.85em; cursor:pointer; color:#dce7f5; background:#222b38; border:1px solid #38445a; border-radius:8px; padding:7px 12px; }
+  .ant-clear:hover { border-color:#4f9af0; }
   /* coordinates / numeric runs must not bidi-scramble inside RTL Hebrew */
   .coords, #exp-table .coords { unicode-bidi:isolate; }
   /* explore-table: cells right-aligned under their right-aligned headers, numbers isolated */
@@ -341,6 +382,7 @@
       <button class="rm-btn" id="antA-remove" title="הסר אנטנה A" aria-label="הסר אנטנה A" hidden>✕ הסר</button></h2>
     <div class="row"><span class="coords" id="antA-coords">— , —</span> · גובה קרקע: <b id="antA-ground">—</b></div>
     <div class="field">גובה תורן: <input id="antA-mast" type="number" value="3" min="0" step="1" aria-label="גובה תורן אנטנה A (מטרים)"> מ' · אפקטיבי: <b id="antA-eff">—</b></div>
+    <div class="antsel" id="antA-antsel" data-end="A"></div>
     <div class="awarn" id="antA-warn"></div>
   </div>
 
@@ -349,6 +391,7 @@
       <button class="rm-btn" id="antB-remove" title="הסר אנטנה B" aria-label="הסר אנטנה B" hidden>✕ הסר</button></h2>
     <div class="row"><span class="coords" id="antB-coords">— , —</span> · גובה קרקע: <b id="antB-ground">—</b></div>
     <div class="field">גובה תורן: <input id="antB-mast" type="number" value="3" min="0" step="1" aria-label="גובה תורן אנטנה B (מטרים)"> מ' · אפקטיבי: <b id="antB-eff">—</b></div>
+    <div class="antsel" id="antB-antsel" data-end="B"></div>
     <div class="awarn" id="antB-warn"></div>
   </div>
 
@@ -467,6 +510,24 @@
   <button id="nat-banner-x">✕ צא למצב מיקום אנטנות</button>
 </div>
 <div class="chip" id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="ant-modal" id="ant-modal" hidden role="dialog" aria-modal="true" aria-labelledby="ant-modal-title">
+  <div class="ant-modal-box">
+    <div class="ant-modal-head">
+      <h3 id="ant-modal-title">בחר אנטנת Ubiquiti</h3>
+      <button class="ant-x" id="ant-modal-close" aria-label="סגור">✕</button>
+    </div>
+    <div class="ant-filters">
+      <input id="ant-search" type="search" placeholder="חיפוש דגם…" aria-label="חיפוש אנטנה">
+      <div class="ant-chips" id="ant-band-chips"></div>
+    </div>
+    <div class="ant-grid" id="ant-grid"></div>
+    <div class="ant-modal-foot">
+      <button class="ant-clear" id="ant-clear">ללא אנטנה (גיין ידני)</button>
+      <span class="muted">גיין מתוך דאטה-שיט · מזין אוטומטית את תקציב הקישור</span>
+    </div>
+  </div>
+</div>
 
 <div id="explore-overlay" hidden>
   <div class="exp-head">

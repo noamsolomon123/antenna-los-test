@@ -15,6 +15,7 @@ const ok = (c, msg) => { assert.ok(c, msg); passed++; };
     antennaB: { lat: 31.74, lon: 34.88, mast: 12 },
     frequencyMHz: 5800, observer: 'A',
     budget: { tx: 20, gain: 24, sens: -85 },
+    modelA: 'powerbeam-5ac-620', modelB: 'litebeam-5ac-gen2',
   };
   const enc = encodeState(s);
   ok(typeof enc === 'string' && enc.includes('a=') && enc.includes('lb='), 'encodes to a query string');
@@ -24,6 +25,7 @@ const ok = (c, msg) => { assert.ok(c, msg); passed++; };
   ok(d.antennaA.mast === 5 && d.antennaB.mast === 12, 'masts round-trip');
   ok(d.frequencyMHz === 5800 && d.observer === 'A', 'freq + observer round-trip');
   ok(d.budget.tx === 20 && d.budget.gain === 24 && d.budget.sens === -85, 'budget round-trips');
+  ok(d.modelA === 'powerbeam-5ac-620' && d.modelB === 'litebeam-5ac-gen2', 'antenna model ids round-trip');
 }
 // tolerates a leading '#', missing fields, and garbage
 ok(Object.keys(decodeState('')).length === 0, 'empty string ⇒ empty state');

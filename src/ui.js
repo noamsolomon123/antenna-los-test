@@ -22,6 +22,7 @@ import { encodeState, decodeState } from './permalink.js';
 import { buildLinkKml } from './kml.js';
 import { fetchBuildings, buildingHeightAt } from './buildings.js';
 import { magneticDeclination, trueToMagnetic } from './declination.js';
+import { ANTENNAS, antennaById, TYPE_LABEL, typeIconSvg } from './antennas.js';
 
 const PROFILE_ZOOM = 12;
 const $ = (id) => document.getElementById(id);
@@ -66,6 +67,13 @@ export function initUI() {
     buildingsCache = { key: null, list: [] };
     if (state.antennaA && state.antennaB) recomputeLink(true);
   });
+  // Ubiquiti antenna picker
+  renderAntennaSel('A'); renderAntennaSel('B');
+  $('ant-modal-close').addEventListener('click', closeAntennaPicker);
+  $('ant-clear').addEventListener('click', () => clearAntennaModel(antTargetEnd));
+  $('ant-search').addEventListener('input', renderAntennaGrid);
+  $('ant-modal').addEventListener('click', (e) => { if (e.target === $('ant-modal')) closeAntennaPicker(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('ant-modal').hidden) closeAntennaPicker(); });
   renderBudget();
   updateToolButtons();
   // a shared permalink takes priority over the first-visit national view
@@ -675,10 +683,13 @@ const LB_Q = {
 };
 function readBudgetInputs() {
   const num = (id, d) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : d; };
-  const gain = num('lb-gain', 20);
+  const manual = num('lb-gain', 20);
+  // a selected Ubiquiti antenna sets that end's gain; otherwise the manual gain applies
+  const txGainDbi = antA ? antA.gainDbi : manual;
+  const rxGainDbi = antB ? antB.gainDbi : manual;
   return {
-    txPowerDbm: num('lb-tx', 20), txGainDbi: gain, txCableLossDb: 0.5,
-    rxGainDbi: gain, rxCableLossDb: 0.5, extraLossDb: 0, rxSensitivityDbm: num('lb-sens', -85),
+    txPowerDbm: num('lb-tx', 20), txGainDbi, txCableLossDb: 0.5,
+    rxGainDbi, rxCableLossDb: 0.5, extraLossDb: 0, rxSensitivityDbm: num('lb-sens', -85),
   };
 }
 // Free-space link budget for the current A↔B distance + frequency. Independent of
@@ -692,12 +703,14 @@ function renderBudget() {
   const link = state.link;
   const sameLink = link && link.distanceKm != null && Math.abs(link.distanceKm - distKm) < 0.05;
   const diff = sameLink && Number.isFinite(link.diffractionLossDb) ? link.diffractionLossDb : 0;
-  const r = computeLinkBudget({ ...readBudgetInputs(), extraLossDb: diff, freqMHz: state.frequencyMHz, distKm });
+  const inp = readBudgetInputs();
+  const r = computeLinkBudget({ ...inp, extraLossDb: diff, freqMHz: state.frequencyMHz, distKm });
   const [cls, label] = LB_Q[r.quality] || LB_Q.unknown;
   el.className = 'lb-result';
   el.innerHTML =
     `<div class="lb-pill ${cls}">קישור ${label} · מרווח דהייה ${r.fadeMarginDb.toFixed(1)} dB</div>` +
     '<div class="lb-grid">' +
+    `<span>רווח A/B: <b>${inp.txGainDbi}/${inp.rxGainDbi} dBi</b></span>` +
     `<span>EIRP: <b>${r.eirp.toFixed(1)} dBm</b></span>` +
     `<span>אובדן מסלול: <b>${r.fspl.toFixed(1)} dB</b></span>` +
     (diff > 0.1 ? `<span>אובדן עקיפה: <b>${diff.toFixed(1)} dB</b></span>` : '') +
@@ -805,7 +818,11 @@ function currentBudget() {
   return { tx: num('lb-tx', 20), gain: num('lb-gain', 20), sens: num('lb-sens', -85) };
 }
 function currentHash() {
-  return encodeState({ antennaA: state.antennaA, antennaB: state.antennaB, frequencyMHz: state.frequencyMHz, observer: state.observer, budget: currentBudget() });
+  return encodeState({
+    antennaA: state.antennaA, antennaB: state.antennaB, frequencyMHz: state.frequencyMHz,
+    observer: state.observer, budget: currentBudget(),
+    modelA: antA ? antA.id : null, modelB: antB ? antB.id : null,
+  });
 }
 function writeHash() {
   if (restoringPermalink) return;
@@ -822,11 +839,104 @@ function restoreFromHash() {
     document.querySelectorAll('.preset').forEach((bn) => bn.classList.toggle('active', +bn.dataset.mhz === d.frequencyMHz));
   }
   if (d.budget) { $('lb-tx').value = d.budget.tx; $('lb-gain').value = d.budget.gain; $('lb-sens').value = d.budget.sens; }
+  if (d.modelA) { setEndAnt('A', antennaById(d.modelA)); renderAntennaSel('A'); }
+  if (d.modelB) { setEndAnt('B', antennaById(d.modelB)); renderAntennaSel('B'); }
   if (d.observer) { update({ observer: d.observer }); $('obs-A').classList.toggle('active', d.observer === 'A'); $('obs-B').classList.toggle('active', d.observer === 'B'); }
   if (d.antennaA) { $('antA-mast').value = d.antennaA.mast; placeAntenna('A', L.latLng(d.antennaA.lat, d.antennaA.lon)); }
   if (d.antennaB) { $('antB-mast').value = d.antennaB.mast; placeAntenna('B', L.latLng(d.antennaB.lat, d.antennaB.lon)); }
   restoringPermalink = false;
   return true;
+}
+
+// ---------- Ubiquiti antenna selection -------------------------------------
+let antA = null, antB = null;   // selected antenna objects (null = use the manual gain)
+let antTargetEnd = 'A';         // end the open picker is assigning to
+let antBandFilter = 'all';
+const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const endAnt = (end) => (end === 'A' ? antA : antB);
+function setEndAnt(end, ant) { if (end === 'A') antA = ant; else antB = ant; }
+
+// swap a broken product image for the per-type SVG icon
+function attachImgFallback(img, type) {
+  const swap = () => { const ph = document.createElement('span'); ph.className = 'ph'; ph.innerHTML = typeIconSvg(type); img.replaceWith(ph); };
+  img.addEventListener('error', swap);
+  if (img.complete && img.naturalWidth === 0) swap();
+}
+
+function renderAntennaSel(end) {
+  const box = $(`ant${end}-antsel`);
+  if (!box) return;
+  const ant = endAnt(end);
+  const role = end === 'A' ? 'קבוע' : 'נע';
+  if (!ant) {
+    box.innerHTML = `<button class="antsel-btn" type="button">📡 בחר אנטנת Ubiquiti (${end} · ${role})</button>`;
+    box.querySelector('button').addEventListener('click', () => openAntennaPicker(end));
+    return;
+  }
+  const thumb = ant.imageUrl
+    ? `<img class="thumb" data-type="${ant.type}" src="${escHtml(ant.imageUrl)}" alt="">`
+    : `<span class="ph">${typeIconSvg(ant.type)}</span>`;
+  box.innerHTML = `<div class="antsel-chip" role="button" tabindex="0">${thumb}` +
+    `<div class="info"><div class="nm">${escHtml(ant.name)}</div><div class="sub">${escHtml(ant.band)} · ${escHtml(TYPE_LABEL[ant.type] || ant.type)}</div></div>` +
+    `<span class="g">${ant.gainDbi} dBi</span><button class="chg" type="button">החלף</button></div>`;
+  box.querySelectorAll('img[data-type]').forEach((img) => attachImgFallback(img, img.dataset.type));
+  const chip = box.querySelector('.antsel-chip');
+  const open = () => openAntennaPicker(end);
+  chip.addEventListener('click', open);
+  chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+}
+
+function openAntennaPicker(end) {
+  antTargetEnd = end;
+  $('ant-modal-title').textContent = `בחר אנטנה — ${end === 'A' ? 'נקודה קבועה (A)' : 'נקודה נעה (B)'}`;
+  renderBandChips();
+  $('ant-search').value = '';
+  renderAntennaGrid();
+  $('ant-modal').hidden = false;
+  $('ant-search').focus();
+}
+function closeAntennaPicker() { $('ant-modal').hidden = true; }
+
+function renderBandChips() {
+  const bands = ['all', ...Array.from(new Set(ANTENNAS.map((a) => a.band)))];
+  const wrap = $('ant-band-chips');
+  wrap.innerHTML = bands.map((b) => `<button type="button" data-band="${escHtml(b)}" aria-pressed="${b === antBandFilter}">${b === 'all' ? 'הכל' : escHtml(b)}</button>`).join('');
+  wrap.querySelectorAll('button').forEach((btn) => btn.addEventListener('click', () => { antBandFilter = btn.dataset.band; renderBandChips(); renderAntennaGrid(); }));
+}
+
+function renderAntennaGrid() {
+  const q = ($('ant-search').value || '').trim().toLowerCase();
+  const grid = $('ant-grid');
+  const list = ANTENNAS.filter((a) => (antBandFilter === 'all' || a.band === antBandFilter) && (!q || (a.name + ' ' + a.line).toLowerCase().includes(q)));
+  grid.innerHTML = list.map((a) => {
+    const pic = a.imageUrl ? `<img data-type="${a.type}" src="${escHtml(a.imageUrl)}" alt="">` : `<span class="ph">${typeIconSvg(a.type)}</span>`;
+    return `<div class="ant-card" data-id="${escHtml(a.id)}" role="button" tabindex="0" title="${escHtml(a.name)}">` +
+      `<div class="pic">${pic}</div>` +
+      `<div class="nm">${escHtml(a.name)}</div>` +
+      `<div class="meta"><span class="band">${escHtml(a.band)} · ${escHtml(TYPE_LABEL[a.type] || a.type)}</span><span class="gain">${a.gainDbi} dBi</span></div>` +
+      '</div>';
+  }).join('') || '<div class="muted" style="padding:20px">אין תוצאות</div>';
+  grid.querySelectorAll('img[data-type]').forEach((img) => attachImgFallback(img, img.dataset.type));
+  grid.querySelectorAll('.ant-card').forEach((c) => {
+    const pick = () => selectAntennaModel(antTargetEnd, c.dataset.id);
+    c.addEventListener('click', pick);
+    c.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  });
+}
+
+function selectAntennaModel(end, id) {
+  setEndAnt(end, antennaById(id));
+  closeAntennaPicker();
+  renderAntennaSel(end);
+  renderBudget();
+  afterChange();
+}
+function clearAntennaModel(end) {
+  setEndAnt(end, null);
+  closeAntennaPicker();
+  renderAntennaSel(end);
+  renderBudget();
+  afterChange();
 }
 
 function updateCards() {

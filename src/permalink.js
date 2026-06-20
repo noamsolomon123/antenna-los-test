@@ -18,6 +18,8 @@ export function encodeState(s) {
   if (s.frequencyMHz) p.set('f', String(s.frequencyMHz));
   if (s.observer === 'A' || s.observer === 'B') p.set('o', s.observer);
   if (s.budget) p.set('lb', `${s.budget.tx},${s.budget.gain},${s.budget.sens}`);
+  if (s.modelA) p.set('ma', s.modelA);
+  if (s.modelB) p.set('mb', s.modelB);
   return p.toString();
 }
 
@@ -33,5 +35,7 @@ export function decodeState(str) {
     const [tx, gain, sens] = String(p.get('lb')).split(',').map(Number);
     if ([tx, gain, sens].every(Number.isFinite)) out.budget = { tx, gain, sens };
   }
+  if (p.has('ma')) out.modelA = p.get('ma');
+  if (p.has('mb')) out.modelB = p.get('mb');
   return out;
 }
